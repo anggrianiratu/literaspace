@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($user && password_verify($password, $user['password'])) {
             session_regenerate_id(true);
-            $_SESSION['user_id']   = $user['id'];
+            $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_nama'] = $user['nama_depan'] . ' ' . $user['nama_belakang'];
 
             if ($ingat) {
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setcookie('remember_token', $token, time() + 60 * 60 * 24 * 30, '/', '', false, true);
             }
 
-            header('Location: ../pages/dashboard.php');
+            header('Location: ../index.php');
             exit;
         } else {
             $error = 'Email atau password salah. Silakan coba lagi.';

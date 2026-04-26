@@ -9,7 +9,7 @@ require_once __DIR__ . '/config/db.php';
 
 // Initialize variables
 $pdo = getDB();
-$user_id = $_SESSION['id'] ?? null;
+$user_id = $_SESSION['user_id'] ?? null;
 $cart_count = 0;
 $wishlist_count = 0;
 $categories = [];
@@ -208,8 +208,8 @@ function truncateText($text, $limit = 50) {
                                 </div>
                             </div>
                         <?php else: ?>
-                            <a href="/auth/login.php" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
-                                Login
+                            <a href="/literaspace/auth/login.php" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
+                                Masuk / Daftar
                             </a>
                         <?php endif; ?>
                     </div>
@@ -588,8 +588,8 @@ function truncateText($text, $limit = 50) {
         // Add to Cart Function
         function addToCart(bookId) {
             if (!<?php echo json_encode($user_id ? true : false); ?>) {
-                alert('Silakan login terlebih dahulu untuk menambahkan ke keranjang.');
-                window.location.href = '/auth/login.php';
+                alert('Silakan masuk terlebih dahulu untuk menambahkan ke keranjang.');
+                window.location.href = '/literaspace/auth/login.php';
                 return;
             }
             
@@ -624,7 +624,7 @@ function truncateText($text, $limit = 50) {
         function addToWishlist(bookId) {
             if (!<?php echo json_encode($user_id ? true : false); ?>) {
                 alert('Silakan login terlebih dahulu untuk menambahkan ke wishlist.');
-                window.location.href = '/auth/login.php';
+                window.location.href = '/literaspace/auth/login.php';
                 return;
             }
             
