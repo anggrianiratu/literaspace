@@ -7,653 +7,879 @@
 session_start();
 require_once __DIR__ . '/config/db.php';
 
-// Initialize variables
-$pdo = getDB();
-$user_id = $_SESSION['user_id'] ?? null;
-$cart_count = 0;
+$pdo            = getDB();
+$user_id        = $_SESSION['user_id'] ?? null;
+$cart_count     = 0;
 $wishlist_count = 0;
-$categories = [];
-$popular_books = [];
-$fantasy_books = [];
-$error = null;
+$categories     = [];
+$popular_books  = [];
+$fantasy_books  = [];
+$error          = null;
 
 try {
-    // === Query 1: Get all categories (limit 7) ===
-    $stmt_categories = $pdo->query("
-        SELECT id_kategori, nama_kategori 
-        FROM kategori 
-        LIMIT 7
-    ");
+    $stmt_categories = $pdo->query("SELECT id_kategori, nama_kategori FROM kategori LIMIT 7");
     $categories = $stmt_categories->fetchAll(PDO::FETCH_ASSOC);
-    
-    // === Query 2: Get popular books (5 books - ordered by ID/popularity) ===
-    $stmt_popular = $pdo->query("
-        SELECT id_buku, judul, penulis, harga, cover_image 
-        FROM buku 
-        ORDER BY id_buku DESC 
-        LIMIT 5
-    ");
+
+    $stmt_popular = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku ORDER BY id_buku DESC LIMIT 5");
     $popular_books = $stmt_popular->fetchAll(PDO::FETCH_ASSOC);
-    
-    // === Query 3: Get Fantasy category books (assuming id_kategori = 2 for fantasy) ===
-    // If fantasy category has different ID, adjust the WHERE clause
-    $stmt_fantasy = $pdo->query("
-        SELECT id_buku, judul, penulis, harga, cover_image 
-        FROM buku 
-        WHERE id_kategori = 2 OR judul LIKE '%fantasi%' OR judul LIKE '%fantasy%'
-        LIMIT 4
-    ");
+
+    $stmt_fantasy = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 2 OR judul LIKE '%fantasi%' OR judul LIKE '%fantasy%' LIMIT 4");
     $fantasy_books = $stmt_fantasy->fetchAll(PDO::FETCH_ASSOC);
-    
-    // === Query 4: Get cart count for logged-in user ===
+
     if ($user_id) {
-        $stmt_cart = $pdo->prepare("SELECT COUNT(*) as count FROM keranjang WHERE id_user = ?");
-        $stmt_cart->execute([$user_id]);
-        $cart_count = $stmt_cart->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
-        
-        // === Query 5: Get wishlist count ===
-        $stmt_wishlist = $pdo->prepare("SELECT COUNT(*) as count FROM wishlist WHERE id_user = ?");
-        $stmt_wishlist->execute([$user_id]);
-        $wishlist_count = $stmt_wishlist->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+        $sc = $pdo->prepare("SELECT COUNT(*) FROM keranjang WHERE id_user = ?"); $sc->execute([$user_id]); $cart_count = (int)$sc->fetchColumn();
+        $sw = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE id_user = ?");  $sw->execute([$user_id]); $wishlist_count = (int)$sw->fetchColumn();
     }
-    
 } catch (PDOException $e) {
     $error = "Error loading data: " . $e->getMessage();
 }
 
-// Helper function: Format currency to Rupiah
-function formatRupiah($amount) {
-    return 'Rp ' . number_format($amount, 0, ',', '.');
-}
-
-// Helper function: Truncate text
-function truncateText($text, $limit = 50) {
-    return strlen($text) > $limit ? substr($text, 0, $limit) . '...' : $text;
-}
+function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
+function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? mb_substr($text, 0, $limit) . '…' : $text; }
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LiteraSpace - Toko Buku Online Terlengkap</title>
-    <meta name="description" content="Jelajahi koleksi buku terlengkap di LiteraSpace. Dari fiksi, non-fiksi, hingga buku anak-anak.">
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Heroicons CDN (via unpkg) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/heroicons@2.0.18/dist/index.css">
-    
-    <!-- Font Awesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LiteraSpace — Toko Buku Online Terlengkap</title>
+    <meta name="description" content="Jelajahi koleksi buku terlengkap di LiteraSpace. Dari fiksi, non-fiksi, hingga buku anak-anak." />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
     <style>
-        * {
-            font-family: 'Inter', sans-serif;
+        /* ── Design tokens (identik dengan katalog.php) ── */
+        :root {
+            --indigo-deep:  #1e1667;
+            --indigo-mid:   #2d2a8f;
+            --indigo-light: #3b2ec0;
+            --white:        #ffffff;
+            --gray-50:      #f8f8fb;
+            --gray-100:     #f0f0f7;
+            --gray-200:     #e2e2ef;
+            --gray-500:     #6b6b8a;
+            --gray-800:     #1a1a2e;
+            --error:        #e03c3c;
+            --success:      #1db87d;
+            --amber:        #d4920a;
+            --radius:       14px;
+            --shadow:       0 4px 24px rgba(30,22,103,.10);
         }
-        
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Poppins', sans-serif;
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
         }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            height: 8px;
+
+        /* ── Navbar (identik dengan katalog.php) ── */
+        .navbar {
+            position: sticky; top: 0; z-index: 50;
+            background: var(--white);
+            box-shadow: 0 4px 24px rgba(30,22,103,.13), 0 1px 0 rgba(30,22,103,.06);
+            border-bottom: none;
         }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
+
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--indigo-deep);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .2s, transform .2s; flex-shrink: 0;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #94a3b8;
-            border-radius: 4px;
+        .logo-icon:hover { background: var(--indigo-light); transform: scale(1.05); }
+        .logo-icon svg   { width: 20px; height: 20px; fill: var(--white); }
+
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.15rem; color: var(--gray-800); font-weight: 700;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
+
+        .search-wrap { flex: 1; max-width: 420px; position: relative; }
+        .search-input {
+            width: 100%; padding: .6rem 2.2rem .6rem 1rem;
+            background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-size: .9rem; color: var(--gray-800);
+            outline: none; transition: border-color .2s, box-shadow .2s;
         }
-        
-        /* Smooth transitions */
+        .search-input::placeholder { color: var(--gray-500); }
+        .search-input:focus { border-color: var(--indigo-light); box-shadow: 0 0 0 3px rgba(59,46,192,.10); background: var(--white); }
+        .search-btn {
+            position: absolute; right: .75rem; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: var(--gray-500); font-size: .85rem; transition: color .2s;
+        }
+        .search-btn:hover { color: var(--indigo-light); }
+
+        .nav-icon { color: var(--gray-500); font-size: 1.15rem; text-decoration: none; position: relative; transition: color .2s; }
+        .nav-icon:hover { color: var(--indigo-light); }
+        .nav-badge {
+            position: absolute; top: -7px; right: -7px;
+            background: var(--error); color: var(--white);
+            font-size: .62rem; font-weight: 700;
+            width: 17px; height: 17px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .btn-auth {
+            padding: .42rem 1rem; background: var(--indigo-deep); color: var(--white);
+            border: none; border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-size: .86rem; font-weight: 600;
+            cursor: pointer; text-decoration: none; transition: background .2s;
+        }
+        .btn-auth:hover { background: var(--indigo-light); }
+
+        .dropdown-wrap { position: relative; }
+        .dropdown-menu {
+            position: absolute; right: 0; top: calc(100% + 8px);
+            width: 175px; background: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(30,22,103,.22), 0 2px 8px rgba(30,22,103,.10);
+            border: 1.5px solid var(--gray-200);
+            opacity: 0; visibility: hidden;
+            transition: opacity .2s, visibility .2s; z-index: 100;
+        }
+        .dropdown-wrap:hover .dropdown-menu { opacity: 1; visibility: visible; }
+        .dropdown-menu a { display: block; padding: .62rem 1rem; font-size: .86rem; color: var(--gray-800); text-decoration: none; transition: background .15s, color .15s; }
+        .dropdown-menu a:first-child { border-radius: 8px 8px 0 0; }
+        .dropdown-menu a:last-child  { border-radius: 0 0 8px 8px; color: var(--error); }
+        .dropdown-menu a:hover       { background: rgba(30,22,103,.05); color: var(--indigo-light); }
+        .dropdown-menu a:last-child:hover { background: #fdecea; color: var(--error); }
+        .dropdown-menu hr { border-color: var(--gray-200); margin: .25rem 0; }
+
+        /* ── Category pill bar ── */
+        .cat-bar {
+            border-top: 1.5px solid var(--gray-100);
+            background: var(--white);
+        }
+        .cat-bar-inner {
+            max-width: 1280px; margin: 0 auto;
+            padding: 0 1.5rem;
+            display: flex; gap: .5rem; overflow-x: auto;
+            scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .cat-bar-inner::-webkit-scrollbar { display: none; }
+        .cat-pill {
+            display: inline-flex; align-items: center;
+            padding: .45rem 1rem; white-space: nowrap;
+            font-size: .82rem; font-weight: 500;
+            color: var(--gray-500);
+            border: 1.5px solid transparent; border-radius: 9999px;
+            text-decoration: none;
+            transition: color .2s, border-color .2s, background .2s;
+            flex-shrink: 0; margin: .55rem 0;
+        }
+        .cat-pill:hover { color: var(--indigo-deep); border-color: var(--indigo-light); background: rgba(59,46,192,.06); }
+        .cat-pill.all { color: var(--indigo-light); border-color: var(--indigo-light); }
+        .cat-pill.all:hover { background: rgba(59,46,192,.08); }
+
+        /* ── Hero ── */
+        .hero {
+            background: var(--indigo-deep);
+            overflow: hidden; position: relative;
+            margin-top: 1.5rem;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 60% 80% at 80% 50%, rgba(59,46,192,.55) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 60% at 10% 90%, rgba(212,146,10,.18) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .hero-inner {
+            max-width: 1280px; margin: 0 auto;
+            padding: 4.5rem 1.5rem 5rem;
+            position: relative; z-index: 1;
+            display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 3rem;
+        }
+        @media (max-width: 720px) { .hero-inner { grid-template-columns: 1fr; padding: 3rem 1.25rem 3.5rem; } .hero-visual { display: none; } }
+
+        .hero-eyebrow {
+            display: inline-block;
+            font-size: .75rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+            color: var(--amber); margin-bottom: .9rem;
+        }
+        .hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 3.2rem);
+            line-height: 1.15; color: var(--white);
+            margin-bottom: 1.1rem;
+        }
+        .hero-title em { font-style: italic; color: #c9b8ff; }
+        .hero-body { font-size: 1rem; color: rgba(255,255,255,.72); line-height: 1.65; margin-bottom: 2rem; }
+
+        .hero-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+        .btn-primary {
+            padding: .75rem 1.5rem;
+            background: var(--amber); color: var(--gray-800);
+            border: none; border-radius: 9px;
+            font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 700;
+            text-decoration: none; cursor: pointer;
+            transition: background .2s, transform .1s; display: inline-flex; align-items: center; gap: .4rem;
+        }
+        .btn-primary:hover { background: #e8a412; }
+        .btn-primary:active { transform: scale(.98); }
+
+        .btn-ghost {
+            padding: .75rem 1.5rem;
+            background: rgba(255,255,255,.1); color: var(--white);
+            border: 1.5px solid rgba(255,255,255,.3); border-radius: 9px;
+            font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 600;
+            text-decoration: none; cursor: pointer;
+            transition: background .2s, border-color .2s; display: inline-flex; align-items: center; gap: .4rem;
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.55); }
+
+        /* Hero visual (floating book stack) */
+        .hero-visual {
+            display: flex; align-items: center; justify-content: center;
+        }
+        .book-stack { position: relative; width: 200px; height: 260px; }
+        .book-stack .b {
+            position: absolute; width: 140px; height: 190px;
+            border-radius: 6px 12px 12px 6px;
+            box-shadow: 0 12px 40px rgba(0,0,0,.35);
+        }
+        .b1 { background: linear-gradient(145deg,#4a2f9a,#1e1667); top: 30px; left: 0; transform: rotate(-8deg); }
+        .b2 { background: linear-gradient(145deg,#b5451b,#e76f51); top: 10px; left: 40px; transform: rotate(2deg); }
+        .b3 { background: linear-gradient(145deg,#0f4c75,#1b6ca8); top: 50px; left: 70px; transform: rotate(10deg); }
+        .b-spine {
+            position: absolute; left: 0; top: 0; width: 14px; height: 100%;
+            background: rgba(0,0,0,.25); border-radius: 6px 0 0 6px;
+        }
+
+        /* ── Section commons ── */
+        .section { padding: 3.5rem 0; }
+        .section-inner { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
+        .section-alt { background: linear-gradient(160deg, rgba(59,46,192,.04) 0%, rgba(30,22,103,.07) 100%); }
+
+        .section-head {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            margin-bottom: 1.8rem; gap: 1rem; flex-wrap: wrap;
+        }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.55rem; color: var(--gray-800);
+            display: flex; align-items: center; gap: .5rem;
+        }
+        .section-title .icon { font-size: 1.1rem; }
+        .section-subtitle { font-size: .84rem; color: var(--gray-500); margin-top: .2rem; }
+
+        .see-all {
+            font-size: .84rem; font-weight: 600; color: var(--indigo-light);
+            text-decoration: none; display: flex; align-items: center; gap: .3rem;
+            white-space: nowrap; transition: color .2s;
+        }
+        .see-all:hover { color: var(--indigo-deep); }
+        .see-all i { font-size: .72rem; transition: transform .2s; }
+        .see-all:hover i { transform: translateX(3px); }
+
+        /* ── Book card (sesuai katalog.php) ── */
         .book-card {
-            transition: all 0.3s ease;
+            background: var(--white);
+            border-radius: 12px;
+            border: 1.5px solid var(--gray-200);
+            overflow: hidden;
+            transition: transform .3s, box-shadow .3s;
         }
-        .book-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        .book-card:hover { transform: translateY(-5px); box-shadow: 0 16px 40px rgba(30,22,103,.12); }
+
+        .cover-wrap { position: relative; }
+        .cover-placeholder {
+            width: 100%; aspect-ratio: 3/4;
+            display: flex; align-items: center; justify-content: center;
         }
-        
-        /* Hero background gradient */
-        .hero-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .cover-placeholder svg { width: 36px; height: 36px; fill: rgba(255,255,255,.4); }
+
+        .cat-badge {
+            position: absolute; top: 6px; left: 6px;
+            background: rgba(255,255,255,.92); color: var(--indigo-deep);
+            font-size: .68rem; font-weight: 700;
+            padding: .15rem .5rem; border-radius: 9999px; letter-spacing: .03em;
         }
-        
-        /* Smooth scroll behavior */
-        html {
-            scroll-behavior: smooth;
+
+        .book-info { padding: .75rem; }
+        .book-title-link {
+            font-size: .84rem; font-weight: 600; color: var(--gray-800);
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            margin-bottom: .15rem; text-decoration: none; transition: color .2s;
+        }
+        .book-title-link:hover { color: var(--indigo-light); }
+        .book-author { font-size: .74rem; color: var(--gray-500); margin-bottom: .5rem; }
+        .book-price  { font-size: .9rem; font-weight: 700; color: var(--indigo-deep); }
+
+        .btn-cart {
+            width: 32px; height: 32px;
+            background: var(--indigo-deep); color: var(--white);
+            border: none; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: .75rem; transition: background .2s;
+        }
+        .btn-cart:hover { background: var(--indigo-light); }
+
+        .btn-wish {
+            background: none; border: none; cursor: pointer;
+            font-size: .9rem; color: var(--gray-500); padding: 0; transition: color .2s;
+        }
+        .btn-wish:hover { color: var(--error); }
+
+        /* Grids */
+        .books-grid-5 {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+        }
+        .books-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        @media (max-width: 1024px) {
+            .books-grid-5 { grid-template-columns: repeat(3, 1fr); }
+            .books-grid-4 { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .books-grid-5, .books-grid-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            background: var(--white); border-radius: var(--radius);
+            border: 1.5px solid var(--gray-200);
+            padding: 4rem 2rem; text-align: center;
+        }
+        .empty-state i { font-size: 2.5rem; color: var(--gray-200); display: block; margin-bottom: .8rem; }
+        .empty-state p { font-size: .88rem; color: var(--gray-500); }
+
+        /* ── Promo Banner ── */
+        .promo-banner {
+            background: var(--indigo-deep);
+            border-radius: var(--radius);
+            padding: 2.8rem 2.5rem;
+            display: grid; grid-template-columns: 1fr auto;
+            gap: 2rem; align-items: center;
+            position: relative; overflow: hidden;
+        }
+        .promo-banner::before {
+            content: '';
+            position: absolute; right: -80px; top: -80px;
+            width: 260px; height: 260px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.04);
+            pointer-events: none;
+        }
+        .promo-banner::after {
+            content: '';
+            position: absolute; right: 60px; bottom: -100px;
+            width: 200px; height: 200px; border-radius: 50%;
+            background: rgba(59,46,192,.2);
+            pointer-events: none;
+        }
+        @media (max-width: 640px) { .promo-banner { grid-template-columns: 1fr; } .promo-icon { display: none !important; } }
+
+        .promo-eyebrow {
+            font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+            color: var(--amber); margin-bottom: .5rem;
+        }
+        .promo-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem; color: var(--white); margin-bottom: .6rem;
+        }
+        .promo-body { font-size: .88rem; color: rgba(255,255,255,.68); margin-bottom: 1.4rem; line-height: 1.6; }
+
+        .promo-form { display: flex; gap: .6rem; flex-wrap: wrap; max-width: 520px; }
+        .promo-input {
+            flex: 1; min-width: 200px;
+            padding: .65rem 1rem;
+            background: rgba(255,255,255,.1);
+            border: 1.5px solid rgba(255,255,255,.25);
+            border-radius: 8px; color: var(--white);
+            font-family: 'DM Sans', sans-serif; font-size: .88rem;
+            outline: none; transition: border-color .2s, background .2s;
+        }
+        .promo-input::placeholder { color: rgba(255,255,255,.45); }
+        .promo-input:focus { border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.15); }
+
+        .btn-promo {
+            padding: .65rem 1.4rem;
+            background: var(--amber); color: var(--gray-800);
+            border: none; border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-size: .88rem; font-weight: 700;
+            cursor: pointer; white-space: nowrap;
+            transition: background .2s;
+        }
+        .btn-promo:hover { background: #e8a412; }
+
+        /* ── Footer ── */
+        footer {
+            background: var(--gray-800);
+            color: rgba(255,255,255,.65);
+            margin-top: 0;
+        }
+        .footer-inner {
+            max-width: 1280px; margin: 0 auto;
+            padding: 3.5rem 1.5rem 2rem;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr;
+            gap: 2.5rem;
+        }
+        @media (max-width: 900px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 540px) { .footer-inner { grid-template-columns: 1fr; } }
+
+        .footer-logo-icon {
+            width: 36px; height: 36px;
+            background: var(--indigo-light); border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: .7rem;
+        }
+        .footer-logo-icon svg { width: 18px; height: 18px; fill: var(--white); }
+        .footer-brand { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--white); margin-bottom: .6rem; }
+        .footer-about { font-size: .82rem; line-height: 1.65; }
+        .footer-copy { font-size: .74rem; color: rgba(255,255,255,.35); margin-top: .9rem; }
+
+        .footer-heading { font-size: .82rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--white); margin-bottom: .9rem; }
+        .footer-links { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+        .footer-links a { font-size: .82rem; color: rgba(255,255,255,.55); text-decoration: none; transition: color .2s; }
+        .footer-links a:hover { color: var(--white); }
+
+        .social-row { display: flex; gap: .6rem; margin-bottom: 1.2rem; }
+        .social-btn {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,.08); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,.65); text-decoration: none; font-size: .82rem;
+            transition: background .2s, color .2s;
+        }
+        .social-btn:hover { background: var(--indigo-light); color: var(--white); }
+
+        .contact-row { display: flex; align-items: flex-start; gap: .5rem; font-size: .82rem; margin-bottom: .4rem; }
+        .contact-row i { color: var(--indigo-light); margin-top: .1rem; font-size: .78rem; flex-shrink: 0; }
+
+        .footer-bottom {
+            max-width: 1280px; margin: 0 auto;
+            padding: 1.2rem 1.5rem;
+            border-top: 1px solid rgba(255,255,255,.08);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        .footer-bottom p { font-size: .78rem; }
+        .pay-imgs { display: flex; gap: .6rem; align-items: center; }
+        .pay-imgs img { height: 22px; opacity: .5; transition: opacity .2s; }
+        .pay-imgs img:hover { opacity: .85; }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999;
+            padding: .7rem 1.1rem; border-radius: 10px;
+            color: var(--white); font-size: .87rem;
+            display: flex; align-items: center; gap: .5rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,.18);
+            transform: translateY(80px); opacity: 0;
+            transition: all .3s; pointer-events: none;
         }
     </style>
 </head>
-<body class="bg-slate-50">
-    
-    <!-- ===== NAVBAR (STICKY) ===== -->
-    <nav class="sticky top-0 z-50 bg-white shadow-md">
-        <!-- Primary Navbar -->
-        <div class="border-b border-slate-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between h-20">
-                    
-                    <!-- Logo -->
-                    <div class="flex-shrink-0">
-                        <a href="/" class="flex items-center space-x-2 group">
-                            <div class="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center transform group-hover:scale-105 transition">
-                                <i class="fas fa-book text-white text-lg"></i>
-                            </div>
-                            <span class="font-bold text-xl text-slate-900 hidden sm:inline">LiteraSpace</span>
-                        </a>
-                    </div>
-                    
-                    <!-- Search Bar (Desktop) -->
-                    <div class="flex-1 max-w-md mx-4 hidden md:block">
-                        <form class="relative" action="/search" method="GET">
-                            <input 
-                                type="search" 
-                                name="q" 
-                                placeholder="Cari judul, penulis, atau kategori..."
-                                class="w-full px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
-                            >
-                            <button type="submit" class="absolute right-3 top-2.5 text-slate-400 hover:text-indigo-600 transition">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </form>
-                    </div>
-                    
-                    <!-- Right Navigation (Cart, Wishlist, Profile) -->
-                    <div class="flex items-center space-x-4 sm:space-x-6">
-                        
-                        <!-- Cart Icon -->
-                        <a href="/keranjang" class="relative group text-slate-600 hover:text-indigo-600 transition text-xl">
-                            <i class="fas fa-shopping-cart"></i>
-                            <?php if ($cart_count > 0): ?>
-                                <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                    <?php echo min($cart_count, 99); ?>
-                                </span>
-                            <?php endif; ?>
-                        </a>
-                        
-                        <!-- Wishlist Icon -->
-                        <a href="/wishlist" class="relative group text-slate-600 hover:text-red-500 transition text-xl">
-                            <i class="far fa-heart"></i>
-                            <?php if ($wishlist_count > 0): ?>
-                                <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                    <?php echo min($wishlist_count, 99); ?>
-                                </span>
-                            <?php endif; ?>
-                        </a>
-                        
-                        <!-- Login / Profile -->
-                        <?php if ($user_id): ?>
-                            <div class="relative group">
-                                <button class="flex items-center space-x-1 text-slate-600 hover:text-indigo-600 transition">
-                                    <i class="fas fa-user-circle text-2xl"></i>
-                                </button>
-                                <!-- Dropdown Menu -->
-                                <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-300">
-                                    <a href="/profile" class="block px-4 py-2 text-slate-700 hover:bg-indigo-50 first:rounded-t-lg">Profil Saya</a>
-                                    <a href="/pesanan" class="block px-4 py-2 text-slate-700 hover:bg-indigo-50">Pesanan Saya</a>
-                                    <a href="/wishlist" class="block px-4 py-2 text-slate-700 hover:bg-indigo-50">Wishlist</a>
-                                    <hr class="my-1">
-                                    <a href="/auth/logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50 last:rounded-b-lg">Logout</a>
-                                </div>
-                            </div>
-                        <?php else: ?>
-                            <a href="/literaspace/auth/login.php" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
-                                Masuk / Daftar
-                            </a>
-                        <?php endif; ?>
-                    </div>
+<body>
+
+<!-- ════════════════════════ NAVBAR ════════════════════════ -->
+<nav class="navbar">
+    <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; height:68px; gap:1rem;">
+
+            <!-- Logo -->
+            <a href="/index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
                 </div>
+                <span class="logo-text" id="logo-text-desk" style="display:none;">LiteraSpace</span>
+            </a>
+
+            <!-- Search -->
+            <div class="search-wrap">
+                <form action="/search" method="GET">
+                    <input type="search" name="q" placeholder="Cari judul, penulis, atau kategori..." class="search-input" />
+                    <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
+                </form>
             </div>
-        </div>
-        
-        <!-- Secondary Navbar: Search Mobile + Categories -->
-        <div class="bg-white border-b border-slate-100">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                
-                <!-- Search Bar (Mobile) -->
-                <div class="md:hidden py-3">
-                    <form class="relative" action="/search" method="GET">
-                        <input 
-                            type="search" 
-                            name="q" 
-                            placeholder="Cari buku..."
-                            class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                        <button type="submit" class="absolute right-3 top-2 text-slate-400 hover:text-indigo-600">
-                            <i class="fas fa-search"></i>
+
+            <!-- Right icons -->
+            <div style="display:flex; align-items:center; gap:1.1rem; flex-shrink:0;">
+                <a href="/keranjang" class="nav-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                    <?php if ($cart_count > 0): ?><span class="nav-badge"><?= min($cart_count, 99) ?></span><?php endif; ?>
+                </a>
+                <a href="/wishlist" class="nav-icon" style="color:var(--gray-500);"
+                   onmouseover="this.style.color='#e03c3c'" onmouseout="this.style.color='var(--gray-500)'">
+                    <i class="far fa-heart"></i>
+                    <?php if ($wishlist_count > 0): ?><span class="nav-badge"><?= min($wishlist_count, 99) ?></span><?php endif; ?>
+                </a>
+
+                <?php if ($user_id): ?>
+                    <div class="dropdown-wrap">
+                        <button style="background:none;border:none;cursor:pointer;" class="nav-icon">
+                            <i class="fas fa-user-circle" style="font-size:1.45rem;"></i>
                         </button>
-                    </form>
-                </div>
-                
-                <!-- Categories Navigation -->
-                <div class="overflow-x-auto">
-                    <div class="flex space-x-2 py-3 px-2 md:px-0 min-w-min">
-                        <?php if (!empty($categories)): ?>
-                            <?php foreach ($categories as $category): ?>
-                                <a 
-                                    href="/literaspace/pages/kategori.php?id=<?php echo urlencode($category['id_kategori']); ?>"
-                                    class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-full whitespace-nowrap transition duration-200 border border-transparent hover:border-indigo-300"
-                                >
-                                    <?php echo htmlspecialchars($category['nama_kategori']); ?>
-                                </a>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <!-- View All Categories -->
-                        <a 
-                            href="/literaspace/pages/kategori.php"
-                             class="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-100 rounded-full whitespace-nowrap transition duration-200 border border-indigo-300"
-                        >
-                            <i class="fas fa-plus mr-1"></i>Lihat Semua
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-    
-    <!-- ===== HERO SECTION ===== -->
-    <section class="hero-bg text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-            <div class="grid grid-cols-1 md:grid-cols-2 items-center gap-12">
-                
-                <!-- Hero Content -->
-                <div class="space-y-6">
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                        Jelajahi Dunia <span class="text-amber-300">Literatur</span> Tanpa Batas
-                    </h1>
-                    <p class="text-lg md:text-xl text-indigo-100">
-                        Temukan ribuan judul buku dari berbagai genre dan penulis terkenal. Pengiriman cepat, harga terjangkau, dan kualitas terjamin.
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-4 pt-4">
-                        <a href="/kategori" class="px-8 py-3 bg-amber-400 text-indigo-900 font-bold rounded-lg hover:bg-amber-300 transition inline-flex items-center justify-center">
-                            <i class="fas fa-search mr-2"></i>Eksplorasi Sekarang
-                        </a>
-                        <a href="/tentang" class="px-8 py-3 border-2 border-white text-white font-bold rounded-lg hover:bg-white hover:text-indigo-700 transition inline-flex items-center justify-center">
-                            <i class="fas fa-info-circle mr-2"></i>Pelajari Lebih
-                        </a>
-                    </div>
-                </div>
-                
-                <!-- Hero Image (Placeholder) -->
-                <div class="hidden md:flex justify-center">
-                    <div class="relative w-80 h-80">
-                        <div class="absolute inset-0 bg-white opacity-20 rounded-3xl transform rotate-12"></div>
-                        <div class="absolute inset-0 bg-white opacity-10 rounded-3xl transform -rotate-12"></div>
-                        <div class="relative bg-gradient-to-br from-amber-200 to-amber-100 rounded-3xl w-full h-full flex items-center justify-center shadow-2xl">
-                            <i class="fas fa-book text-amber-600 text-8xl opacity-30"></i>
+                        <div class="dropdown-menu">
+                            <a href="/profile"><i class="fas fa-user fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Profil Saya</a>
+                            <a href="/pesanan"><i class="fas fa-box fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Pesanan Saya</a>
+                            <a href="/wishlist"><i class="far fa-heart fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Wishlist</a>
+                            <hr />
+                            <a href="/literaspace/auth/logout.php"><i class="fas fa-sign-out-alt fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Logout</a>
                         </div>
                     </div>
-                </div>
+                <?php else: ?>
+                    <a href="/literaspace/auth/login.php" class="btn-auth">Masuk / Daftar</a>
+                <?php endif; ?>
             </div>
         </div>
-    </section>
-    
-    <!-- ===== SECTION: BUKU TERPOPULER ===== -->
-    <section class="py-12 md:py-16 lg:py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <!-- Section Header -->
-            <div class="flex items-center justify-between mb-10">
-                <div>
-                    <h2 class="text-3xl md:text-4xl font-bold text-slate-900">
-                        <i class="fas fa-fire text-amber-500 mr-3"></i>Buku Terpopuler
-                    </h2>
-                    <p class="text-slate-600 mt-2">Pilihan terbaik dan paling dicari oleh pembaca kami</p>
-                </div>
-                <a href="/kategori" class="text-indigo-600 hover:text-indigo-700 font-semibold flex items-center space-x-2 group">
-                    <span>Lihat Semua</span>
-                    <i class="fas fa-arrow-right group-hover:translate-x-1 transition"></i>
+    </div>
+
+    <!-- Category pill bar -->
+    <?php if (!empty($categories)): ?>
+    <div class="cat-bar">
+        <div class="cat-bar-inner">
+            <?php foreach ($categories as $cat): ?>
+                <a href="/literaspace/pages/kategori.php?id=<?= urlencode($cat['id_kategori']) ?>" class="cat-pill">
+                    <?= htmlspecialchars($cat['nama_kategori']) ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+</nav>
+
+<?php if ($error): ?>
+<div style="max-width:1280px; margin:.8rem auto; padding:0 1.5rem;">
+    <div style="background:#fdecea; border:1.5px solid #f5c6c6; color:var(--error); border-radius:8px; padding:.75rem 1rem; font-size:.88rem;">
+        <i class="fas fa-exclamation-circle" style="margin-right:.4rem;"></i><?= htmlspecialchars($error) ?>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- ════════════════════════ HERO ════════════════════════ -->
+<section class="hero">
+    <div class="hero-inner">
+        <div>
+            <span class="hero-eyebrow">✦ Toko Buku Online #1 Indonesia</span>
+            <h1 class="hero-title">
+                Jelajahi Dunia <em>Literatur</em> Tanpa Batas
+            </h1>
+            <p class="hero-body">
+                Temukan ribuan judul dari penulis lokal dan mancanegara. Pengiriman cepat, harga terjangkau, dan kualitas terjamin untuk setiap pembaca.
+            </p>
+            <div class="hero-actions">
+                <a href="/literaspace/pages/kategori.php" class="btn-primary">
+                    <i class="fas fa-book-open"></i> Lihat Katalog
                 </a>
             </div>
-            
-            <!-- Books Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-                <?php if (!empty($popular_books)): ?>
-                    <?php foreach ($popular_books as $book): ?>
-                        <div class="book-card bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl">
-                            
-                            <!-- Book Cover -->
-                            <div class="relative bg-gradient-to-br from-slate-200 to-slate-300 aspect-[3/4] overflow-hidden group">
-                                <?php if (!empty($book['cover_image']) && file_exists(__DIR__ . "/assets/covers/{$book['cover_image']}")): ?>
-                                    <img 
-                                        src="/assets/covers/<?php echo htmlspecialchars($book['cover_image']); ?>" 
-                                        alt="<?php echo htmlspecialchars($book['judul']); ?>"
-                                        class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                                    >
-                                <?php else: ?>
-                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-200 to-purple-200">
-                                        <i class="fas fa-book text-indigo-500 text-4xl opacity-50"></i>
-                                    </div>
-                                <?php endif; ?>
-                                
-                                <!-- Add to Cart Button (Overlay) -->
-                                <button 
-                                    onclick="addToCart(<?php echo $book['id_buku']; ?>)"
-                                    class="absolute inset-0 w-full h-full bg-black bg-opacity-0 hover:bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition duration-300"
-                                >
-                                    <div class="bg-amber-400 text-slate-900 rounded-full p-4 hover:bg-amber-300 transition">
-                                        <i class="fas fa-plus text-xl font-bold"></i>
-                                    </div>
-                                </button>
-                            </div>
-                            
-                            <!-- Book Info -->
-                            <div class="p-4">
-                                <h3 class="text-sm font-semibold text-slate-900 line-clamp-2 h-10 mb-2">
-                                    <?php echo htmlspecialchars(truncateText($book['judul'], 40)); ?>
-                                </h3>
-                                
-                                <p class="text-xs text-slate-500 mb-3 line-clamp-1">
-                                    <?php echo htmlspecialchars($book['penulis'] ?? 'Penulis Tidak Tertera'); ?>
-                                </p>
-                                
-                                <div class="flex items-center justify-between">
-                                    <span class="text-lg font-bold text-indigo-600">
-                                        <?php echo formatRupiah($book['harga']); ?>
-                                    </span>
-                                    <button onclick="addToWishlist(<?php echo $book['id_buku']; ?>)" class="text-slate-400 hover:text-red-500 transition text-lg">
+        </div>
+
+        <!-- Floating book stack illustration -->
+        <div class="hero-visual">
+            <div class="book-stack">
+                <div class="b b1"><div class="b-spine"></div></div>
+                <div class="b b2"><div class="b-spine"></div></div>
+                <div class="b b3"><div class="b-spine"></div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════ BUKU TERPOPULER ════════════════════════ -->
+<section class="section">
+    <div class="section-inner">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">
+                    <i class="fas fa-fire icon" style="color:#d4920a;"></i> Buku Terpopuler
+                </h2>
+                <p class="section-subtitle">Pilihan terbaik dan paling dicari oleh pembaca kami</p>
+            </div>
+            <a href="/kategori" class="see-all">Lihat Semua <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <?php if (!empty($popular_books)): ?>
+            <?php
+            $cover_gradients = [
+                'linear-gradient(135deg,#1e1667,#3b2ec0)',
+                'linear-gradient(135deg,#0f4c75,#1b6ca8)',
+                'linear-gradient(135deg,#2d6a4f,#52b788)',
+                'linear-gradient(135deg,#7b2d8b,#c77dff)',
+                'linear-gradient(135deg,#b5451b,#e76f51)',
+            ];
+            ?>
+            <div class="books-grid-5">
+                <?php foreach ($popular_books as $book):
+                    $ci = $book['id_buku'] % count($cover_gradients);
+                ?>
+                    <div class="book-card">
+                        <div class="cover-wrap">
+                            <?php if (!empty($book['cover_image']) && file_exists(__DIR__ . "/assets/covers/{$book['cover_image']}")): ?>
+                                <img src="/assets/covers/<?= htmlspecialchars($book['cover_image']) ?>"
+                                     alt="<?= htmlspecialchars($book['judul']) ?>"
+                                     style="width:100%; aspect-ratio:3/4; object-fit:cover; display:block;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="cover-placeholder" style="display:none; background:<?= $cover_gradients[$ci] ?>;">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
+                                </div>
+                            <?php else: ?>
+                                <div class="cover-placeholder" style="background:<?= $cover_gradients[$ci] ?>;">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="book-info">
+                            <a href="/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
+                                <?= htmlspecialchars(truncateText($book['judul'], 45)) ?>
+                            </a>
+                            <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.4rem;">
+                                <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
+                                <div style="display:flex; gap:.4rem;">
+                                    <button class="btn-wish" onclick="tambahWishlist(<?= $book['id_buku'] ?>)" title="Simpan ke wishlist">
                                         <i class="far fa-heart"></i>
+                                    </button>
+                                    <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Tambah ke keranjang">
+                                        <i class="fas fa-cart-plus"></i>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="col-span-full text-center py-12 text-slate-500">
-                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                        <p>Belum ada buku yang tersedia</p>
                     </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>Belum ada buku yang tersedia.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- ════════════════════════ EPIK & FANTASI ════════════════════════ -->
+<section class="section section-alt">
+    <div class="section-inner">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">
+                    <i class="fas fa-wand-magic-sparkles icon" style="color:var(--indigo-light);"></i> Epik &amp; Fantasi
+                </h2>
+                <p class="section-subtitle">Petualangan menakjubkan menanti Anda di setiap halaman</p>
+            </div>
+            <a href="/kategori/2" class="see-all">Lihat Kategori <i class="fas fa-arrow-right"></i></a>
         </div>
-    </section>
-    
-    <!-- ===== SECTION: EPIK & FANTASI ===== -->
-    <section class="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-purple-50 to-indigo-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            <!-- Section Header -->
-            <div class="flex items-center justify-between mb-10">
-                <div>
-                    <h2 class="text-3xl md:text-4xl font-bold text-slate-900">
-                        <i class="fas fa-wand-magic-sparkles text-purple-600 mr-3"></i>Epik & Fantasi
-                    </h2>
-                    <p class="text-slate-600 mt-2">Petualangan menakjubkan menanti Anda di setiap halaman</p>
-                </div>
-                <a href="/kategori/2" class="text-purple-600 hover:text-purple-700 font-semibold flex items-center space-x-2 group">
-                    <span>Lihat Kategori</span>
-                    <i class="fas fa-arrow-right group-hover:translate-x-1 transition"></i>
-                </a>
-            </div>
-            
-            <!-- Books Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                <?php if (!empty($fantasy_books)): ?>
-                    <?php foreach ($fantasy_books as $book): ?>
-                        <div class="book-card bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl">
-                            
-                            <!-- Book Cover -->
-                            <div class="relative bg-gradient-to-br from-slate-200 to-slate-300 aspect-[3/4] overflow-hidden group">
-                                <?php if (!empty($book['cover_image']) && file_exists(__DIR__ . "/assets/covers/{$book['cover_image']}")): ?>
-                                    <img 
-                                        src="/assets/covers/<?php echo htmlspecialchars($book['cover_image']); ?>" 
-                                        alt="<?php echo htmlspecialchars($book['judul']); ?>"
-                                        class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                                    >
-                                <?php else: ?>
-                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-200 to-pink-200">
-                                        <i class="fas fa-wand-magic-sparkles text-purple-500 text-4xl opacity-50"></i>
-                                    </div>
-                                <?php endif; ?>
-                                
-                                <!-- Add to Cart Button (Overlay) -->
-                                <button 
-                                    onclick="addToCart(<?php echo $book['id_buku']; ?>)"
-                                    class="absolute inset-0 w-full h-full bg-black bg-opacity-0 hover:bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition duration-300"
-                                >
-                                    <div class="bg-purple-400 text-white rounded-full p-4 hover:bg-purple-500 transition">
-                                        <i class="fas fa-plus text-xl font-bold"></i>
-                                    </div>
-                                </button>
-                            </div>
-                            
-                            <!-- Book Info -->
-                            <div class="p-4">
-                                <h3 class="text-sm font-semibold text-slate-900 line-clamp-2 h-10 mb-2">
-                                    <?php echo htmlspecialchars(truncateText($book['judul'], 40)); ?>
-                                </h3>
-                                
-                                <p class="text-xs text-slate-500 mb-3 line-clamp-1">
-                                    <?php echo htmlspecialchars($book['penulis'] ?? 'Penulis Tidak Tertera'); ?>
-                                </p>
-                                
-                                <div class="flex items-center justify-between">
-                                    <span class="text-lg font-bold text-purple-600">
-                                        <?php echo formatRupiah($book['harga']); ?>
-                                    </span>
-                                    <button onclick="addToWishlist(<?php echo $book['id_buku']; ?>)" class="text-slate-400 hover:text-red-500 transition text-lg">
+
+        <?php if (!empty($fantasy_books)): ?>
+            <?php
+            $fantasy_gradients = [
+                'linear-gradient(135deg,#1a1040,#4a2f9a)',
+                'linear-gradient(135deg,#7b2d8b,#c77dff)',
+                'linear-gradient(135deg,#2d1b69,#8b5cf6)',
+                'linear-gradient(135deg,#0f0c29,#302b63)',
+            ];
+            ?>
+            <div class="books-grid-4">
+                <?php foreach ($fantasy_books as $book):
+                    $ci = $book['id_buku'] % count($fantasy_gradients);
+                ?>
+                    <div class="book-card">
+                        <div class="cover-wrap">
+                            <?php if (!empty($book['cover_image']) && file_exists(__DIR__ . "/assets/covers/{$book['cover_image']}")): ?>
+                                <img src="/assets/covers/<?= htmlspecialchars($book['cover_image']) ?>"
+                                     alt="<?= htmlspecialchars($book['judul']) ?>"
+                                     style="width:100%; aspect-ratio:3/4; object-fit:cover; display:block;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="cover-placeholder" style="display:none; background:<?= $fantasy_gradients[$ci] ?>;">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
+                                </div>
+                            <?php else: ?>
+                                <div class="cover-placeholder" style="background:<?= $fantasy_gradients[$ci] ?>;">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
+                                </div>
+                            <?php endif; ?>
+                            <span class="cat-badge">Fantasi</span>
+                        </div>
+
+                        <div class="book-info">
+                            <a href="/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
+                                <?= htmlspecialchars(truncateText($book['judul'], 45)) ?>
+                            </a>
+                            <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.4rem;">
+                                <span class="book-price" style="color:var(--indigo-light);"><?= formatRupiah($book['harga']) ?></span>
+                                <div style="display:flex; gap:.4rem;">
+                                    <button class="btn-wish" onclick="tambahWishlist(<?= $book['id_buku'] ?>)" title="Simpan ke wishlist">
                                         <i class="far fa-heart"></i>
+                                    </button>
+                                    <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Tambah ke keranjang">
+                                        <i class="fas fa-cart-plus"></i>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="col-span-full text-center py-12 text-slate-500">
-                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                        <p>Belum ada buku fantasi yang tersedia</p>
                     </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </div>
-        </div>
-    </section>
-    
-    <!-- ===== SECTION: PROMO BANNER ===== -->
-    <section class="py-12 md:py-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 md:p-12 text-white overflow-hidden relative">
-                <!-- Background decoration -->
-                <div class="absolute top-0 right-0 -mr-32 -mt-32 w-64 h-64 bg-white opacity-5 rounded-full"></div>
-                
-                <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                    <div>
-                        <h3 class="text-3xl md:text-4xl font-bold mb-4">Dapatkan Diskon Spesial!</h3>
-                        <p class="text-lg mb-6 text-indigo-100">
-                            Daftarkan email Anda dan dapatkan voucher diskon hingga 25% untuk pembelian pertama.
-                        </p>
-                        <form class="flex flex-col sm:flex-row gap-3">
-                            <input 
-                                type="email" 
-                                placeholder="Masukkan email Anda..." 
-                                required
-                                class="px-4 py-3 rounded-lg text-slate-900 flex-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                            >
-                            <button type="submit" class="px-8 py-3 bg-amber-400 text-indigo-900 font-bold rounded-lg hover:bg-amber-300 transition whitespace-nowrap">
-                                Berlangganan
-                            </button>
-                        </form>
-                    </div>
-                    <div class="text-center md:text-right">
-                        <i class="fas fa-gift text-8xl opacity-20"></i>
-                    </div>
-                </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <p>Belum ada buku fantasi yang tersedia.</p>
             </div>
-        </div>
-    </section>
-    
-    <!-- ===== FOOTER ===== -->
-    <footer class="bg-slate-900 text-slate-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-            
-            <!-- Footer Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-                
-                <!-- About LiteraSpace -->
-                <div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <div class="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-book text-white"></i>
-                        </div>
-                        <h4 class="text-lg font-bold text-white">LiteraSpace</h4>
-                    </div>
-                    <p class="text-sm leading-relaxed mb-4">
-                        Toko buku online terpercaya dengan koleksi lengkap dari berbagai genre dan penulis. Kami berkomitmen memberikan pengalaman belanja terbaik.
-                    </p>
-                    <p class="text-xs text-slate-500">© 2026 LiteraSpace. Semua hak dilindungi.</p>
-                </div>
-                
-                <!-- Bantuan & FAQ -->
-                <div>
-                    <h4 class="text-lg font-bold text-white mb-4">Bantuan</h4>
-                    <ul class="space-y-2">
-                        <li><a href="/faq" class="text-sm hover:text-indigo-400 transition">FAQ</a></li>
-                        <li><a href="/lacak-pesanan" class="text-sm hover:text-indigo-400 transition">Lacak Pesanan</a></li>
-                        <li><a href="/return-policy" class="text-sm hover:text-indigo-400 transition">Kebijakan Pengembalian</a></li>
-                        <li><a href="/hubungi-kami" class="text-sm hover:text-indigo-400 transition">Hubungi Kami</a></li>
-                    </ul>
-                </div>
-                
-                <!-- Informasi -->
-                <div>
-                    <h4 class="text-lg font-bold text-white mb-4">Informasi</h4>
-                    <ul class="space-y-2">
-                        <li><a href="/tentang" class="text-sm hover:text-indigo-400 transition">Tentang Kami</a></li>
-                        <li><a href="/syarat-ketentuan" class="text-sm hover:text-indigo-400 transition">Syarat & Ketentuan</a></li>
-                        <li><a href="/privacy-policy" class="text-sm hover:text-indigo-400 transition">Privasi</a></li>
-                        <li><a href="/blog" class="text-sm hover:text-indigo-400 transition">Blog</a></li>
-                    </ul>
-                </div>
-                
-                <!-- Social Media -->
-                <div>
-                    <h4 class="text-lg font-bold text-white mb-4">Ikuti Kami</h4>
-                    <div class="flex space-x-4 mb-6">
-                        <a href="#" class="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition text-white">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-400 transition text-white">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-pink-600 transition text-white">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-red-600 transition text-white">
-                            <i class="fab fa-youtube"></i>
-                        </a>
-                    </div>
-                    
-                    <!-- Contact Info -->
-                    <div class="space-y-2 text-sm">
-                        <p class="flex items-start space-x-2">
-                            <i class="fas fa-phone text-indigo-400 mt-0.5 flex-shrink-0"></i>
-                            <span>+62 812 3456 7890</span>
-                        </p>
-                        <p class="flex items-start space-x-2">
-                            <i class="fas fa-envelope text-indigo-400 mt-0.5 flex-shrink-0"></i>
-                            <span>support@literaspace.com</span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Footer Bottom -->
-            <div class="border-t border-slate-700 pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <p class="text-sm text-slate-500">
-                    Dipercaya oleh lebih dari 50.000+ pembaca di seluruh Indonesia
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- ════════════════════════ PROMO BANNER ════════════════════════ -->
+<section class="section">
+    <div class="section-inner">
+        <div class="promo-banner">
+            <div style="position:relative; z-index:1;">
+                <p class="promo-eyebrow">✦ Penawaran Eksklusif</p>
+                <h3 class="promo-title">Dapatkan Diskon Spesial!</h3>
+                <p class="promo-body">
+                    Daftarkan email Anda dan dapatkan voucher diskon hingga 25%<br>untuk pembelian pertama.
                 </p>
-                <div class="flex space-x-6">
-                    <img src="https://via.placeholder.com/50x30?text=VISA" alt="Visa" class="h-6 opacity-60 hover:opacity-100 transition">
-                    <img src="https://via.placeholder.com/50x30?text=MC" alt="Mastercard" class="h-6 opacity-60 hover:opacity-100 transition">
-                    <img src="https://via.placeholder.com/50x30?text=BCA" alt="BCA" class="h-6 opacity-60 hover:opacity-100 transition">
-                    <img src="https://via.placeholder.com/50x30?text=GOPAY" alt="GoPay" class="h-6 opacity-60 hover:opacity-100 transition">
+                <div class="promo-form">
+                    <input type="email" placeholder="Masukkan email Anda..." class="promo-input" />
+                    <button type="button" class="btn-promo">Berlangganan</button>
                 </div>
             </div>
+            <div class="promo-icon" style="position:relative; z-index:1; flex-shrink:0; display:flex; align-items:center; justify-content:center; width:120px;">
+                <i class="fas fa-gift" style="font-size:5rem; color:rgba(255,255,255,.15);"></i>
+            </div>
         </div>
-    </footer>
-    
-    <!-- ===== JAVASCRIPT FUNCTIONS ===== -->
-    <script>
-        // Add to Cart Function
-        function addToCart(bookId) {
-            if (!<?php echo json_encode($user_id ? true : false); ?>) {
-                alert('Silakan masuk terlebih dahulu untuk menambahkan ke keranjang.');
-                window.location.href = '/literaspace/auth/login.php';
-                return;
-            }
-            
-            // AJAX request to add to cart
-            fetch('/api/keranjang/add.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id_buku: bookId,
-                    qty: 1
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Buku berhasil ditambahkan ke keranjang!');
-                    // Optional: Refresh cart count
-                    location.reload();
-                } else {
-                    alert('Gagal menambahkan ke keranjang: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Terjadi kesalahan. Silakan coba lagi.');
-            });
+    </div>
+</section>
+
+<!-- ════════════════════════ FOOTER ════════════════════════ -->
+<footer>
+    <div class="footer-inner">
+        <!-- Brand -->
+        <div>
+            <div class="footer-logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
+            </div>
+            <p class="footer-brand">LiteraSpace</p>
+            <p class="footer-about">Toko buku online terpercaya dengan koleksi lengkap dari berbagai genre dan penulis. Kami berkomitmen memberikan pengalaman belanja terbaik.</p>
+            <p class="footer-copy">© 2026 LiteraSpace. Semua hak dilindungi.</p>
+        </div>
+
+        <!-- Bantuan -->
+        <div>
+            <p class="footer-heading">Bantuan</p>
+            <ul class="footer-links">
+                <li><a href="/faq">FAQ</a></li>
+                <li><a href="/lacak-pesanan">Lacak Pesanan</a></li>
+                <li><a href="/return-policy">Kebijakan Pengembalian</a></li>
+                <li><a href="/hubungi-kami">Hubungi Kami</a></li>
+            </ul>
+        </div>
+
+        <!-- Informasi -->
+        <div>
+            <p class="footer-heading">Informasi</p>
+            <ul class="footer-links">
+                <li><a href="/tentang">Tentang Kami</a></li>
+                <li><a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a></li>
+                <li><a href="/privacy-policy">Privasi</a></li>
+                <li><a href="/blog">Blog</a></li>
+            </ul>
+        </div>
+
+        <!-- Sosial & Kontak -->
+        <div>
+            <p class="footer-heading">Ikuti Kami</p>
+            <div class="social-row">
+                <a href="#" class="social-btn"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="social-btn"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="social-btn"><i class="fab fa-instagram"></i></a>
+                <a href="#" class="social-btn"><i class="fab fa-youtube"></i></a>
+            </div>
+            <div class="contact-row"><i class="fas fa-phone"></i><span>+62 812 3456 7890</span></div>
+            <div class="contact-row"><i class="fas fa-envelope"></i><span>support@literaspace.com</span></div>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        <p>Dipercaya oleh lebih dari 50.000+ pembaca di seluruh Indonesia</p>
+        <div class="pay-imgs">
+            <img src="https://via.placeholder.com/50x28?text=VISA"  alt="Visa">
+            <img src="https://via.placeholder.com/50x28?text=MC"    alt="Mastercard">
+            <img src="https://via.placeholder.com/50x28?text=BCA"   alt="BCA">
+            <img src="https://via.placeholder.com/50x28?text=GOPAY" alt="GoPay">
+        </div>
+    </div>
+</footer>
+
+<!-- Toast -->
+<div id="toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toast-msg">Buku ditambahkan ke keranjang!</span>
+</div>
+
+<style>
+    @media (min-width: 600px) { #logo-text-desk { display: inline !important; } }
+</style>
+
+<script>
+function showToast(msg, ok = true) {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    t.style.background = ok ? '#1db87d' : '#e03c3c';
+    t.style.transform = 'translateY(0)'; t.style.opacity = '1';
+    setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 2800);
+}
+
+function tambahKeranjang(idBuku, btn) {
+    <?php if (!$user_id): ?>
+        window.location.href = '/literaspace/auth/login.php'; return;
+    <?php endif; ?>
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    fetch('/api/keranjang/add.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_buku: idBuku, qty: 1 })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            showToast('Buku ditambahkan ke keranjang!');
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => { btn.innerHTML = '<i class="fas fa-cart-plus"></i>'; btn.disabled = false; }, 2000);
+        } else {
+            showToast(d.message || 'Gagal menambahkan.', false);
+            btn.innerHTML = '<i class="fas fa-cart-plus"></i>'; btn.disabled = false;
         }
-        
-        // Add to Wishlist Function
-        function addToWishlist(bookId) {
-            if (!<?php echo json_encode($user_id ? true : false); ?>) {
-                alert('Silakan login terlebih dahulu untuk menambahkan ke wishlist.');
-                window.location.href = '/literaspace/auth/login.php';
-                return;
-            }
-            
-            // AJAX request to add to wishlist
-            fetch('/api/wishlist/add.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id_buku: bookId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Buku berhasil ditambahkan ke wishlist!');
-                    event.target.classList.add('fas');
-                    event.target.classList.remove('far');
-                } else {
-                    alert('Gagal menambahkan ke wishlist: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Terjadi kesalahan. Silakan coba lagi.');
-            });
-        }
-    </script>
-    
+    })
+    .catch(() => {
+        showToast('Terjadi kesalahan.', false);
+        btn.innerHTML = '<i class="fas fa-cart-plus"></i>'; btn.disabled = false;
+    });
+}
+
+function tambahWishlist(idBuku) {
+    <?php if (!$user_id): ?>
+        window.location.href = '/literaspace/auth/login.php'; return;
+    <?php endif; ?>
+    fetch('/api/wishlist/add.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_buku: idBuku })
+    })
+    .then(r => r.json())
+    .then(d => {
+        showToast(d.success ? 'Disimpan ke wishlist!' : (d.message || 'Gagal.'), d.success);
+    })
+    .catch(() => showToast('Terjadi kesalahan.', false));
+}
+</script>
 </body>
 </html>

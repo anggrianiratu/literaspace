@@ -1,27 +1,28 @@
 <?php
-// auth/logout.php
-define('BASE_URL', '../');
 require_once '../config/session.php';
 
-// Hapus semua data session
-$_SESSION = [];
+// pastikan session benar-benar aktif
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Hapus cookie session
+// hapus semua session
+$_SESSION = [];
+session_unset();
+session_destroy();
+
+// hapus cookie session
 if (ini_get('session.use_cookies')) {
     $params = session_get_cookie_params();
-    setcookie(
-        session_name(), '', time() - 42000,
+    setcookie(session_name(), '', time() - 42000,
         $params['path'], $params['domain'],
         $params['secure'], $params['httponly']
     );
 }
 
-// Hapus cookie "ingat saya" jika ada
-if (isset($_COOKIE['remember_token'])) {
-    setcookie('remember_token', '', time() - 3600, '/');
-}
+// hapus remember me
+setcookie('remember_token', '', time() - 3600, '/');
 
-session_destroy();
-
-header('Location: login.php');
+// redirect ke login
+header('Location: /literaspace/auth/login.php');
 exit;
