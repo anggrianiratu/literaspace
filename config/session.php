@@ -14,7 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // Helper: cek apakah user sudah login
 // -------------------------------------------------------
 function isLoggedIn(): bool {
-    return isset($_SESSION['id']);
+    return isset($_SESSION['user_id']);
 }
 
 // -------------------------------------------------------
