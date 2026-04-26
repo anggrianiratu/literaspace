@@ -796,23 +796,19 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         <div>
             <p class="footer-heading">Ikuti Kami</p>
             <div class="social-row">
-                <a href="#" class="social-btn"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="social-btn"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="social-btn"><i class="fab fa-instagram"></i></a>
-                <a href="#" class="social-btn"><i class="fab fa-youtube"></i></a>
+                <a href="https://www.instagram.com/literaspace___" class="social-btn"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.tiktok.com/@literaspace___" class="social-btn"><i class="fab fa-tiktok"></i></a>
             </div>
             <div class="contact-row"><i class="fas fa-phone"></i><span>+62 812 3456 7890</span></div>
-            <div class="contact-row"><i class="fas fa-envelope"></i><span>support@literaspace.com</span></div>
+            <div class="contact-row"><i class="fas fa-envelope"></i><span>literaspace@gmail.com</span></div>
         </div>
     </div>
-
+    
     <div class="footer-bottom">
         <p>Dipercaya oleh lebih dari 50.000+ pembaca di seluruh Indonesia</p>
         <div class="pay-imgs">
-            <img src="https://via.placeholder.com/50x28?text=VISA"  alt="Visa">
-            <img src="https://via.placeholder.com/50x28?text=MC"    alt="Mastercard">
-            <img src="https://via.placeholder.com/50x28?text=BCA"   alt="BCA">
-            <img src="https://via.placeholder.com/50x28?text=GOPAY" alt="GoPay">
+             <img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" alt="DANA" style="height:20px; width:auto; filter:brightness(0) invert(1);">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" alt="GoPay" style="height:20px; width:auto; filter:brightness(0) invert(1);">
         </div>
     </div>
 </footer>
