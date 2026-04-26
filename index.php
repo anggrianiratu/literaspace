@@ -663,7 +663,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 </section>
 
 <!-- ════════════════════════ EPIK & FANTASI ════════════════════════ -->
-<section class="section section-alt">
+<section class="section">
     <div class="section-inner">
         <div class="section-head">
             <div>

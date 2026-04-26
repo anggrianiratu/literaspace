@@ -123,7 +123,7 @@ function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
 <nav class="navbar">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
         <div style="display:flex; align-items:center; justify-content:space-between; height:68px; gap:1rem;">
-            <a href="/index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
+            <a href="/literaspace/index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
                 <div class="logo-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
                 </div>

@@ -1,7 +1,7 @@
 <?php
 // ========================================
 // PESANAN.PHP - LITERASPACE
-// Halaman Riwayat Pembelian
+// Halaman Pesanan Saya
 // ========================================
 
 session_start();
@@ -92,7 +92,7 @@ $status_config = [
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Riwayat Pembelian — LiteraSpace</title>
+    <title>Pesanan Saya — LiteraSpace</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -387,7 +387,7 @@ $status_config = [
 <nav class="navbar">
     <div class="nav-inner">
         <!-- Logo -->
-        <a href="/index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
+        <a href="/literaspace/index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
             <div class="logo-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
             </div>
@@ -431,7 +431,7 @@ $status_config = [
 
     <!-- Header -->
     <div style="margin-bottom:1.4rem;">
-        <h1 class="page-title">Riwayat Pembelian</h1>
+        <h1 class="page-title">Pesanan Saya</h1>
         <p class="page-subtitle">Lihat dan kelola semua pesanan kamu</p>
     </div>
 
