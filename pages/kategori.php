@@ -463,7 +463,7 @@ function buildUrl($overrides = []) {
 
             <!-- Right icons -->
             <div style="display:flex; align-items:center; gap:1.1rem; flex-shrink:0;">
-                <a href="/keranjang.php" class="nav-icon">
+                <a href="/literaspace/pages/keranjang.php" class="nav-icon">
                     <i class="fas fa-shopping-cart"></i>
                     <?php if ($cart_count > 0): ?><span class="nav-badge"><?= min($cart_count,99) ?></span><?php endif; ?>
                 </a>
