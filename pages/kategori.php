@@ -8,7 +8,7 @@ session_start();
 require_once __DIR__ . '/../config/db.php';
 
 $pdo       = getDB();
-$user_id   = $_SESSION['id'] ?? null;
+$user_id = $_SESSION['user_id'] ?? null;
 $cart_count     = 0;
 $wishlist_count = 0;
 $categories     = [];
