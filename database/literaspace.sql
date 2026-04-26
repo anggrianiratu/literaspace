@@ -39,7 +39,7 @@ CREATE TABLE `buku` (
   `stok` int DEFAULT '0',
   `sinopsis` text,
   `cover_image` varchar(255) DEFAULT 'default.jpg'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -53,7 +53,7 @@ CREATE TABLE `detail_pesanan` (
   `id_buku` int DEFAULT NULL,
   `qty` int NOT NULL,
   `harga_saat_beli` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -64,7 +64,7 @@ CREATE TABLE `detail_pesanan` (
 CREATE TABLE `kategori` (
   `id_kategori` int NOT NULL,
   `nama_kategori` varchar(50) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -77,7 +77,7 @@ CREATE TABLE `keranjang` (
   `id_user` int UNSIGNED DEFAULT NULL,
   `id_buku` int DEFAULT NULL,
   `qty` int DEFAULT '1'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -95,7 +95,7 @@ CREATE TABLE `pesanan` (
   `status_pesanan` enum('diproses','dikemas','dikirim','selesai') DEFAULT 'diproses',
   `no_resi` varchar(50) DEFAULT NULL,
   `tanggal_pesan` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -110,7 +110,7 @@ CREATE TABLE `review` (
   `rating` int DEFAULT NULL,
   `komentar` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -150,7 +150,7 @@ CREATE TABLE `wishlist` (
   `id_wishlist` int NOT NULL,
   `id_user` int UNSIGNED DEFAULT NULL,
   `id_buku` int DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Indeks untuk tabel yang dibuang

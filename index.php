@@ -242,7 +242,7 @@ function truncateText($text, $limit = 50) {
                         <?php if (!empty($categories)): ?>
                             <?php foreach ($categories as $category): ?>
                                 <a 
-                                    href="/kategori/<?php echo urlencode($category['id_kategori']); ?>" 
+                                    href="/literaspace/pages/kategori.php?id=<?php echo urlencode($category['id_kategori']); ?>"
                                     class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-full whitespace-nowrap transition duration-200 border border-transparent hover:border-indigo-300"
                                 >
                                     <?php echo htmlspecialchars($category['nama_kategori']); ?>
@@ -252,8 +252,8 @@ function truncateText($text, $limit = 50) {
                         
                         <!-- View All Categories -->
                         <a 
-                            href="/kategori" 
-                            class="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-100 rounded-full whitespace-nowrap transition duration-200 border border-indigo-300"
+                            href="/literaspace/pages/kategori.php"
+                             class="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-100 rounded-full whitespace-nowrap transition duration-200 border border-indigo-300"
                         >
                             <i class="fas fa-plus mr-1"></i>Lihat Semua
                         </a>
