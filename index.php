@@ -509,7 +509,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 
             <!-- Right icons -->
             <div style="display:flex; align-items:center; gap:1.1rem; flex-shrink:0;">
-                <a href="/keranjang" class="nav-icon">
+                <a href="/literaspace/pages/keranjang.php" class="nav-icon">
                     <i class="fas fa-shopping-cart"></i>
                     <?php if ($cart_count > 0): ?><span class="nav-badge"><?= min($cart_count, 99) ?></span><?php endif; ?>
                 </a>
@@ -527,7 +527,6 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         <div class="dropdown-menu">
                             <a href="/profile"><i class="fas fa-user fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Profil Saya</a>
                             <a href="/pesanan"><i class="fas fa-box fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Pesanan Saya</a>
-                            <a href="/literaspace/pages/wishlist.php"><i class="far fa-heart fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Wishlist</a>
                             <hr />
                             <a href="/literaspace/auth/logout.php"><i class="fas fa-sign-out-alt fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Logout</a>
                         </div>

@@ -148,7 +148,6 @@ function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
                         <div class="dropdown-menu">
                             <a href="/profile.php"><i class="fas fa-user fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Profil Saya</a>
                             <a href="/pesanan.php"><i class="fas fa-box fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Pesanan Saya</a>
-                            <a href="/literaspace/pages/wishlist.php"><i class="far fa-heart fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Wishlist</a>
                             <hr />
                             <a href="/literaspace/auth/logout.php"><i class="fas fa-sign-out-alt fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Logout</a>
                         </div>
