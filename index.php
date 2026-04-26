@@ -513,7 +513,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                     <i class="fas fa-shopping-cart"></i>
                     <?php if ($cart_count > 0): ?><span class="nav-badge"><?= min($cart_count, 99) ?></span><?php endif; ?>
                 </a>
-                <a href="/wishlist" class="nav-icon" style="color:var(--gray-500);"
+                <a href="/literaspace/pages/wishlist.php" class="nav-icon" style="color:var(--gray-500);"
                    onmouseover="this.style.color='#e03c3c'" onmouseout="this.style.color='var(--gray-500)'">
                     <i class="far fa-heart"></i>
                     <?php if ($wishlist_count > 0): ?><span class="nav-badge"><?= min($wishlist_count, 99) ?></span><?php endif; ?>
@@ -527,7 +527,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         <div class="dropdown-menu">
                             <a href="/profile"><i class="fas fa-user fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Profil Saya</a>
                             <a href="/pesanan"><i class="fas fa-box fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Pesanan Saya</a>
-                            <a href="/wishlist"><i class="far fa-heart fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Wishlist</a>
+                            <a href="/literaspace/pages/wishlist.php"><i class="far fa-heart fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Wishlist</a>
                             <hr />
                             <a href="/literaspace/auth/logout.php"><i class="fas fa-sign-out-alt fa-fw" style="margin-right:.4rem;opacity:.5;"></i>Logout</a>
                         </div>
