@@ -283,7 +283,7 @@ function starHtml($rating) {
         }
         .book-card:hover { transform: translateY(-5px); box-shadow: 0 16px 40px rgba(30,22,103,.12); }
 
-        .cover-wrap { position: relative; }
+        .cover-wrap { position: relative; width: 100%; overflow: hidden; }
         .cover-placeholder {
             width: 100%; aspect-ratio: 3/4;
             display: flex; align-items: center; justify-content: center;
@@ -587,7 +587,7 @@ function starHtml($rating) {
                 <div class="cover-wrap">
 
                     <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
-                        <img src="/assets/images/covers/<?= htmlspecialchars($book['cover_image']) ?>"
+                        <img src="../assets/covers/<?= htmlspecialchars($book['cover_image']) ?>"
                              alt="<?= htmlspecialchars($book['judul']) ?>"
                              style="width:100%; aspect-ratio:3/4; object-fit:cover; display:block;"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
