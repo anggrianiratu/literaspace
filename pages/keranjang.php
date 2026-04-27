@@ -197,7 +197,7 @@ function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
                         </div>
                         <div class="cart-item-cover" style="background:<?= $item['gradient'] ?>;">
                             <?php if (!empty($item['cover_image']) && $item['cover_image'] !== 'default.jpg'): ?>
-                                <img src="/assets/images/covers/<?= htmlspecialchars($item['cover_image']) ?>" alt="<?= htmlspecialchars($item['judul']) ?>" onerror="this.style.display='none'" />
+                                <img src="../assets/covers/<?= htmlspecialchars($item['cover_image']) ?>" alt="<?= htmlspecialchars($item['judul']) ?>" onerror="this.style.display='none'" />
                             <?php else: ?>
                                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
                             <?php endif; ?>

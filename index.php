@@ -290,7 +290,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         }
         .book-card:hover { transform: translateY(-5px); box-shadow: 0 16px 40px rgba(30,22,103,.12); }
 
-        .cover-wrap { position: relative; }
+        .cover-wrap { position: relative; width: 100%; overflow: hidden; }
         .cover-placeholder {
             width: 100%; aspect-ratio: 3/4;
             display: flex; align-items: center; justify-content: center;
@@ -543,7 +543,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     <div class="cat-bar">
         <div class="cat-bar-inner">
             <?php foreach ($categories as $cat): ?>
-                <a href="/literaspace/pages/kategori.php?id=<?= urlencode($cat['id_kategori']) ?>" class="cat-pill">
+                <a href="/literaspace/pages/katalog.php?id=<?= urlencode($cat['id_kategori']) ?>" class="cat-pill">
                     <?= htmlspecialchars($cat['nama_kategori']) ?>
                 </a>
             <?php endforeach; ?>
@@ -572,7 +572,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                 Temukan ribuan judul dari penulis lokal dan mancanegara. Pengiriman cepat, harga terjangkau, dan kualitas terjamin untuk setiap pembaca.
             </p>
             <div class="hero-actions">
-                <a href="/literaspace/pages/kategori.php" class="btn-primary">
+                <a href="/literaspace/pages/katalog.php" class="btn-primary">
                     <i class="fas fa-book-open"></i> Lihat Katalog
                 </a>
             </div>
@@ -618,8 +618,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                 ?>
                     <div class="book-card">
                         <div class="cover-wrap">
-                            <?php if (!empty($book['cover_image']) && file_exists(__DIR__ . "/assets/covers/{$book['cover_image']}")): ?>
-                                <img src="/assets/covers/<?= htmlspecialchars($book['cover_image']) ?>"
+                            <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
+                                <img src="./assets/covers/<?= htmlspecialchars($book['cover_image']) ?>"
                                      alt="<?= htmlspecialchars($book['judul']) ?>"
                                      style="width:100%; aspect-ratio:3/4; object-fit:cover; display:block;"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
@@ -634,7 +634,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         </div>
 
                         <div class="book-info">
-                            <a href="/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
+                            <a href="literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
                                 <?= htmlspecialchars(truncateText($book['judul'], 45)) ?>
                             </a>
                             <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
@@ -690,8 +690,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                 ?>
                     <div class="book-card">
                         <div class="cover-wrap">
-                            <?php if (!empty($book['cover_image']) && file_exists(__DIR__ . "/assets/covers/{$book['cover_image']}")): ?>
-                                <img src="/assets/covers/<?= htmlspecialchars($book['cover_image']) ?>"
+                            <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
+                                <img src="./assets/covers/<?= htmlspecialchars($book['cover_image']) ?>"
                                      alt="<?= htmlspecialchars($book['judul']) ?>"
                                      style="width:100%; aspect-ratio:3/4; object-fit:cover; display:block;"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
@@ -707,7 +707,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         </div>
 
                         <div class="book-info">
-                            <a href="/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
+                            <a href="literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
                                 <?= htmlspecialchars(truncateText($book['judul'], 45)) ?>
                             </a>
                             <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
