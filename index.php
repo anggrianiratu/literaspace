@@ -26,6 +26,19 @@ try {
     $stmt_fantasy = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 2 OR judul LIKE '%fantasi%' OR judul LIKE '%fantasy%' LIMIT 4");
     $fantasy_books = $stmt_fantasy->fetchAll(PDO::FETCH_ASSOC);
 
+    // Tambahkan setelah $stmt_fantasy
+    $stmt_horror = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 3 OR judul LIKE '%horor%' OR judul LIKE '%horror%' LIMIT 4");
+    $horror_books = $stmt_horror->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt_fakta = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 4 OR judul LIKE '%fakta%' OR judul LIKE '%nonfiksi%' LIMIT 4");
+    $fakta_books = $stmt_fakta->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt_romance = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 5 OR judul LIKE '%roman%' OR judul LIKE '%cinta%' LIMIT 4");
+    $romance_books = $stmt_romance->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt_sains = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 6 OR judul LIKE '%sains%' OR judul LIKE '%teknologi%' LIMIT 4");
+    $sains_books = $stmt_sains->fetchAll(PDO::FETCH_ASSOC);
+
     if ($user_id) {
         $sc = $pdo->prepare("SELECT COUNT(*) FROM keranjang WHERE id_user = ?"); $sc->execute([$user_id]); $cart_count = (int)$sc->fetchColumn();
         $sw = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE id_user = ?");  $sw->execute([$user_id]); $wishlist_count = (int)$sw->fetchColumn();
@@ -730,6 +743,206 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
             <div class="empty-state">
                 <i class="fas fa-wand-magic-sparkles"></i>
                 <p>Belum ada buku fantasi yang tersedia.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- ════════════════════════ HOROR & MISTERI ════════════════════════ -->
+<section class="section">
+    <div class="section-inner">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">
+                    <i class="fas fa-skull icon" style="color:#e03c3c;"></i> Horor &amp; Misteri
+                </h2>
+                <p class="section-subtitle">Detak jantung berdegup lebih kencang di setiap halaman</p>
+            </div>
+            <a href="/literaspace/pages/katalog.php?kategori=3" class="see-all">Lihat Kategori <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <?php if (!empty($horror_books)): ?>
+            <div class="books-grid-4">
+                <?php foreach ($horror_books as $book): ?>
+                    <div class="book-card">
+                        <div class="cover-wrap">
+                            <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
+                                <img src="./assets/covers/<?= htmlspecialchars($book['cover_image']) ?>" alt="<?= htmlspecialchars($book['judul']) ?>" style="width:100%; aspect-ratio:3/4; object-fit:cover;">
+                            <?php else: ?>
+                                <div class="cover-placeholder" style="background:linear-gradient(135deg,#2d0a1e,#5c1a3a);">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/></svg>
+                                </div>
+                            <?php endif; ?>
+                            <span class="cat-badge">Horor</span>
+                        </div>
+                        <div class="book-info">
+                            <a href="/literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link"><?= htmlspecialchars(truncateText($book['judul'], 45)) ?></a>
+                            <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
+                                <div style="display:flex; gap:.4rem;">
+                                    <button class="btn-wish" onclick="tambahWishlist(<?= $book['id_buku'] ?>)" title="Wishlist"><i class="far fa-heart"></i></button>
+                                    <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Keranjang"><i class="fas fa-cart-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-skull" style="font-size:2rem;"></i>
+                <p>Belum ada buku horor yang tersedia.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- ════════════════════════ FAKTA & NONFIKSI ════════════════════════ -->
+<section class="section section-alt">
+    <div class="section-inner">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">
+                    <i class="fas fa-lightbulb icon" style="color:#f59e0b;"></i> Fakta &amp; Nonfiksi
+                </h2>
+                <p class="section-subtitle">Perluas wawasan dengan pengetahuan baru setiap hari</p>
+            </div>
+            <a href="/literaspace/pages/katalog.php?kategori=4" class="see-all">Lihat Kategori <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <?php if (!empty($fakta_books)): ?>
+            <div class="books-grid-4">
+                <?php foreach ($fakta_books as $book): ?>
+                    <div class="book-card">
+                        <div class="cover-wrap">
+                            <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
+                                <img src="./assets/covers/<?= htmlspecialchars($book['cover_image']) ?>" alt="<?= htmlspecialchars($book['judul']) ?>" style="width:100%; aspect-ratio:3/4; object-fit:cover;">
+                            <?php else: ?>
+                                <div class="cover-placeholder" style="background:linear-gradient(135deg,#1a4d3a,#2d8f6e);">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/></svg>
+                                </div>
+                            <?php endif; ?>
+                            <span class="cat-badge">Nonfiksi</span>
+                        </div>
+                        <div class="book-info">
+                            <a href="/literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link"><?= htmlspecialchars(truncateText($book['judul'], 45)) ?></a>
+                            <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
+                                <div style="display:flex; gap:.4rem;">
+                                    <button class="btn-wish" onclick="tambahWishlist(<?= $book['id_buku'] ?>)" title="Wishlist"><i class="far fa-heart"></i></button>
+                                    <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Keranjang"><i class="fas fa-cart-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-lightbulb" style="font-size:2rem;"></i>
+                <p>Belum ada buku nonfiksi yang tersedia.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- ════════════════════════ ROMANCE & DRAMA ════════════════════════ -->
+<section class="section">
+    <div class="section-inner">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">
+                    <i class="fas fa-heart icon" style="color:#e03c3c;"></i> Romance &amp; Drama
+                </h2>
+                <p class="section-subtitle">Kisah cinta yang menghangatkan hati</p>
+            </div>
+            <a href="/literaspace/pages/katalog.php?kategori=5" class="see-all">Lihat Kategori <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <?php if (!empty($romance_books)): ?>
+            <div class="books-grid-4">
+                <?php foreach ($romance_books as $book): ?>
+                    <div class="book-card">
+                        <div class="cover-wrap">
+                            <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
+                                <img src="./assets/covers/<?= htmlspecialchars($book['cover_image']) ?>" alt="<?= htmlspecialchars($book['judul']) ?>" style="width:100%; aspect-ratio:3/4; object-fit:cover;">
+                            <?php else: ?>
+                                <div class="cover-placeholder" style="background:linear-gradient(135deg,#7a2040,#c44a6c);">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/></svg>
+                                </div>
+                            <?php endif; ?>
+                            <span class="cat-badge">Romance</span>
+                        </div>
+                        <div class="book-info">
+                            <a href="/literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link"><?= htmlspecialchars(truncateText($book['judul'], 45)) ?></a>
+                            <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
+                                <div style="display:flex; gap:.4rem;">
+                                    <button class="btn-wish" onclick="tambahWishlist(<?= $book['id_buku'] ?>)" title="Wishlist"><i class="far fa-heart"></i></button>
+                                    <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Keranjang"><i class="fas fa-cart-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-heart" style="font-size:2rem;"></i>
+                <p>Belum ada buku romance yang tersedia.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- ════════════════════════ SAINS & TEKNOLOGI ════════════════════════ -->
+<section class="section section-alt">
+    <div class="section-inner">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">
+                    <i class="fas fa-microchip icon" style="color:#1b6ca8;"></i> Sains &amp; Teknologi
+                </h2>
+                <p class="section-subtitle">Temukan inovasi dan penemuan terkini</p>
+            </div>
+            <a href="/literaspace/pages/katalog.php?kategori=6" class="see-all">Lihat Kategori <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        <?php if (!empty($sains_books)): ?>
+            <div class="books-grid-4">
+                <?php foreach ($sains_books as $book): ?>
+                    <div class="book-card">
+                        <div class="cover-wrap">
+                            <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
+                                <img src="./assets/covers/<?= htmlspecialchars($book['cover_image']) ?>" alt="<?= htmlspecialchars($book['judul']) ?>" style="width:100%; aspect-ratio:3/4; object-fit:cover;">
+                            <?php else: ?>
+                                <div class="cover-placeholder" style="background:linear-gradient(135deg,#0a2a3a,#1b5a7a);">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/></svg>
+                                </div>
+                            <?php endif; ?>
+                            <span class="cat-badge">Sains</span>
+                        </div>
+                        <div class="book-info">
+                            <a href="/literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link"><?= htmlspecialchars(truncateText($book['judul'], 45)) ?></a>
+                            <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
+                                <div style="display:flex; gap:.4rem;">
+                                    <button class="btn-wish" onclick="tambahWishlist(<?= $book['id_buku'] ?>)" title="Wishlist"><i class="far fa-heart"></i></button>
+                                    <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Keranjang"><i class="fas fa-cart-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-microchip" style="font-size:2rem;"></i>
+                <p>Belum ada buku sains yang tersedia.</p>
             </div>
         <?php endif; ?>
     </div>
