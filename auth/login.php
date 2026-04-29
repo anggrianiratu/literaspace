@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Email dan password wajib diisi.';
     } else {
         $pdo  = getDB();
-        $stmt = $pdo->prepare('SELECT id, nama_depan, nama_belakang, password FROM users WHERE email = ?');
+        $stmt = $pdo->prepare('SELECT id, nama_depan, nama_belakang, password, role FROM users WHERE email = ?');
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
@@ -28,14 +28,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_nama'] = $user['nama_depan'] . ' ' . $user['nama_belakang'];
+            $_SESSION['role'] = $user['role'];
 
             if ($ingat) {
                 $token = bin2hex(random_bytes(32));
                 setcookie('remember_token', $token, time() + 60 * 60 * 24 * 30, '/', '', false, true);
             }
 
+            if ($user['role'] === 'admin') {
+            header('Location: ../admin/dashboard.php');
+              } else {
             header('Location: ../index.php');
+              }
             exit;
+
         } else {
             $error = 'Email atau password salah. Silakan coba lagi.';
         }

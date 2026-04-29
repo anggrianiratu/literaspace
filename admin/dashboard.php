@@ -862,7 +862,7 @@ function formatTanggal($date) {
 
         <ul class="sidebar-menu">
             <li><a href="dashboard.php" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-            <li><a href="#"><i class="fas fa-book"></i> Manajemen Buku</a></li>
+            <li><a href="buku.php"><i class="fas fa-book"></i> Manajemen Buku</a></li>
             <li><a href="#"><i class="fas fa-folder"></i> Kategori</a></li>
             <li><a href="#"><i class="fas fa-shopping-bag"></i> Pesanan</a></li>
             <li><a href="#"><i class="fas fa-users"></i> User</a></li>
@@ -889,8 +889,7 @@ function formatTanggal($date) {
                                 <div class="dropdown-header-text">Logged in as</div>
                                 <div class="dropdown-header-name"><?= htmlspecialchars($admin_name) ?></div>
                             </div>
-                            <a href="../pages/profile.php"><i class="fas fa-user"></i> Profil</a>
-                            <a href="../pages/password-update.php"><i class="fas fa-lock"></i> Ubah Password</a>
+                            <a href="../profile.php"><i class="fas fa-user"></i> Profil</a>
                             <a href="../auth/logout.php" class="logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
                         </div>
                     </div>

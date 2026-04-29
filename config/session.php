@@ -32,7 +32,11 @@ function requireLogin(): void {
 // -------------------------------------------------------
 function redirectIfLoggedIn(): void {
     if (isLoggedIn()) {
-        header('Location: ' . BASE_URL . 'pages/dashboard.php');
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+            header('Location: ' . BASE_URL . 'admin/dashboard.php');
+        } else {
+            header('Location: ' . BASE_URL . 'index.php');
+        }
         exit;
     }
 }
