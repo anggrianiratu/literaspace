@@ -465,6 +465,30 @@ try {
         if (e.target === modal) closeModal();
     });
 
+    /* tombol checkout */
+    const btnCheckout = document.getElementById('btn-checkout');
+    if (btnCheckout) {
+        btnCheckout.addEventListener('click', function () {
+            const checks = Array.from(document.querySelectorAll('.item-check:checked'));
+            if (checks.length === 0) {
+                showToast('Pilih minimal 1 item', false);
+                return;
+            }
+
+            // Collect selected items
+            const items = checks.map(c => {
+                const row = c.closest('.cart-item');
+                const qty = parseInt(row.querySelector('.qty-val').textContent, 10);
+                const idBuku = parseInt(row.dataset.id, 10);
+                return { id_buku: idBuku, qty: qty };
+            });
+
+            // Save to sessionStorage and redirect
+            sessionStorage.setItem('checkout_items', JSON.stringify(items));
+            window.location.href = '/literaspace/pages/checkout.php';
+        });
+    }
+
     updateSummary();
 })();
 </script>
