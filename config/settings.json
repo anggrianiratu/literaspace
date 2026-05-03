@@ -1,0 +1,14 @@
+{
+    "website_name": "LiteraSpace",
+    "website_description": "Platform Jual Beli Buku Online Terpercaya",
+    "phone": "+62 21 1234 5678",
+    "email": "info@literaspace.com",
+    "address": "Jakarta, Indonesia",
+    "bank_name": "Bank Central Asia (BCA)",
+    "bank_account": "1234567890",
+    "bank_holder": "PT. Litera Space Indonesia",
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": "587",
+    "smtp_email": "noreply@literaspace.com",
+    "smtp_password": ""
+}

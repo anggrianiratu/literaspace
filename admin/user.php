@@ -432,7 +432,7 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
         <li><a href="user.php" class="active"><i class="fas fa-users"></i> User</a></li>
         <li><a href="review.php"><i class="fas fa-star"></i> Review</a></li>
         <li><a href="laporan.php"><i class="fas fa-chart-bar"></i> Laporan</a></li>
-        <li><a href="pengaturan.php"><i class="fas fa-cog"></i> Pengaturan</a></li>
+        <li><a href="settings.php"><i class="fas fa-cog"></i> Pengaturan</a></li>
     </ul>
 </aside>
 
