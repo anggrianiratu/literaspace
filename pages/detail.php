@@ -406,6 +406,41 @@ function starHtml($rating) {
             color: var(--gray-500);
         }
 
+        /* Review Form */
+        .review-form-container {
+            background: var(--gray-50);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1.5px solid var(--gray-200);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: .5rem;
+            font-size: .9rem;
+        }
+
+        .star-selector {
+            display: flex;
+            gap: .5rem;
+        }
+
+        .star-selector i {
+            cursor: pointer;
+            transition: color .2s, transform .1s;
+        }
+
+        .star-selector i:hover {
+            transform: scale(1.15);
+        }
+
         /* Toast */
         #toast {
             position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999;
@@ -481,7 +516,7 @@ function starHtml($rating) {
         <div class="breadcrumb">
             <a href="../index.php">Beranda</a>
             <span>/</span>
-            <a href="kategori.php">Katalog</a>
+            <a href="katalog.php">Katalog</a>
             <span>/</span>
             <span><?= htmlspecialchars($book['judul']) ?></span>
         </div>
@@ -577,6 +612,75 @@ function starHtml($rating) {
         </div>
         <?php endif; ?>
 
+        <!-- Review Form -->
+        <div class="reviews-section">
+            <div class="reviews-title">Tambahkan Ulasan Anda</div>
+            
+            <?php if ($user_id): ?>
+                <div class="review-form-container">
+                    <form id="reviewForm" onsubmit="submitReview(event, <?= $id_buku ?>)">
+                        <!-- Rating selector -->
+                        <div class="form-group">
+                            <label for="rating">Rating</label>
+                            <div class="star-selector" id="starSelector">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <i class="far fa-star" data-value="<?= $i ?>" 
+                                       style="font-size:1.8rem; cursor:pointer; color:#d1d5db; transition:color .2s;"
+                                       onmouseover="this.style.color='#f59e0b'; hoverStars(<?= $i ?>)"
+                                       onmouseout="resetStars();"
+                                       onclick="selectStar(<?= $i ?>)"></i>
+                                <?php endfor; ?>
+                            </div>
+                            <input type="hidden" id="ratingValue" name="rating" value="0" required />
+                            <p id="ratingLabel" style="font-size:.85rem; color:var(--gray-500); margin-top:.5rem;">Pilih rating Anda</p>
+                        </div>
+
+                        <!-- Comment -->
+                        <div class="form-group">
+                            <label for="komentar">Komentar</label>
+                            <textarea id="komentar" name="komentar" placeholder="Bagikan pengalaman Anda membaca buku ini..." 
+                                      rows="5" maxlength="1000" required
+                                      style="width:100%; padding:1rem; border:1.5px solid var(--gray-200); border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.9rem; resize:vertical; outline:none; transition:border-color .2s;"
+                                      onchange="updateCharCount()"
+                                      onkeyup="updateCharCount()"
+                                      onfocus="this.style.borderColor='var(--indigo-light)'; this.style.boxShadow='0 0 0 3px rgba(59,46,192,.10)'"
+                                      onblur="this.style.borderColor='var(--gray-200)'; this.style.boxShadow='none'"></textarea>
+                            <p style="font-size:.8rem; color:var(--gray-500); margin-top:.3rem;"><span id="charCount">0</span>/1000 karakter</p>
+                        </div>
+
+                        <div style="display:flex; gap:1rem;">
+                            <button type="submit" class="btn-primary" style="flex:1;">
+                                <i class="fas fa-paper-plane"></i> Kirim Ulasan
+                            </button>
+                            <button type="reset" class="btn-secondary" style="flex:1;">
+                                <i class="fas fa-times"></i> Batal
+                            </button>
+                        </div>
+                    </form>
+
+                    <?php if ($user_review): ?>
+                    <div style="margin-top:1.5rem; padding:1rem; background:var(--gray-100); border-left:3px solid var(--indigo-light); border-radius:8px;">
+                        <p style="font-size:.85rem; color:var(--gray-500); margin-bottom:.5rem;">
+                            <i class="fas fa-info-circle"></i> Anda sudah memberikan ulasan. Gunakan form di atas untuk mengubahnya.
+                        </p>
+                        <div style="display:flex; gap:.5rem; align-items:center; margin-top:.5rem;">
+                            <span style="color:var(--amber);"><?= starHtml($user_review['rating']) ?></span>
+                            <span style="color:var(--gray-500); font-size:.9rem;">Rating saat ini: <?= $user_review['rating'] ?>/5</span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <div style="padding:2rem; background:var(--gray-100); border-radius:12px; text-align:center;">
+                    <i class="fas fa-sign-in-alt" style="font-size:2rem; color:var(--gray-200); margin-bottom:1rem; display:block;"></i>
+                    <p style="color:var(--gray-500); margin-bottom:1.5rem;">Silakan login untuk memberikan ulasan</p>
+                    <a href="../auth/login.php" class="btn-primary" style="display:inline-flex;">
+                        <i class="fas fa-sign-in-alt"></i> Masuk / Daftar
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
+
         <!-- Reviews -->
         <div class="reviews-section">
             <div class="reviews-title">Ulasan Pembaca</div>
@@ -624,6 +728,111 @@ function showToast(msg, ok = true) {
     t.style.transform = 'translateY(0)'; t.style.opacity = '1';
     setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 2800);
 }
+
+// Rating star functions
+function selectStar(value) {
+    document.getElementById('ratingValue').value = value;
+    updateStarDisplay(value);
+    document.getElementById('ratingLabel').textContent = 'Rating: ' + value + '/5 ⭐';
+}
+
+function hoverStars(value) {
+    const stars = document.querySelectorAll('#starSelector i');
+    stars.forEach((star, idx) => {
+        if (idx < value) {
+            star.classList.remove('far');
+            star.classList.add('fas');
+            star.style.color = '#f59e0b';
+        } else {
+            star.classList.remove('fas');
+            star.classList.add('far');
+            star.style.color = '#d1d5db';
+        }
+    });
+}
+
+function resetStars() {
+    const currentRating = parseInt(document.getElementById('ratingValue').value) || 0;
+    updateStarDisplay(currentRating);
+}
+
+function updateStarDisplay(rating) {
+    const stars = document.querySelectorAll('#starSelector i');
+    stars.forEach((star, idx) => {
+        if (idx < rating) {
+            star.classList.remove('far');
+            star.classList.add('fas');
+            star.style.color = '#f59e0b';
+        } else {
+            star.classList.remove('fas');
+            star.classList.add('far');
+            star.style.color = '#d1d5db';
+        }
+    });
+}
+
+function updateCharCount() {
+    const textarea = document.getElementById('komentar');
+    document.getElementById('charCount').textContent = textarea.value.length;
+}
+
+function submitReview(event, idBuku) {
+    event.preventDefault();
+    
+    const rating = parseInt(document.getElementById('ratingValue').value);
+    const komentar = document.getElementById('komentar').value.trim();
+    
+    if (rating === 0) {
+        showToast('Pilih rating terlebih dahulu', false);
+        return;
+    }
+    
+    if (!komentar) {
+        showToast('Komentar tidak boleh kosong', false);
+        return;
+    }
+    
+    const btn = event.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+    
+    fetch('/literaspace/api/review.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            id_buku: idBuku,
+            rating: rating,
+            komentar: komentar
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            showToast(d.message);
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showToast(d.message || 'Gagal mengirim review', false);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Ulasan';
+        }
+    })
+    .catch((err) => {
+        showToast('Terjadi kesalahan', false);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Ulasan';
+    });
+}
+
+// Load existing rating on page load
+window.addEventListener('DOMContentLoaded', function() {
+    const existingRating = <?= $user_review ? $user_review['rating'] : 0 ?>;
+    if (existingRating > 0) {
+        updateStarDisplay(existingRating);
+        document.getElementById('ratingLabel').textContent = 'Rating: ' + existingRating + '/5 ⭐';
+    }
+});
 
 function tambahKeranjang(idBuku) {
     <?php if (!$user_id): ?>
