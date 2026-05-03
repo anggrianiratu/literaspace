@@ -703,7 +703,7 @@ function hapusDariWishlist(idWishlist, idBuku, btn) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:.7rem;"></i>';
 
-    fetch('/api/wishlist.php', {
+    fetch('/literaspace/api/wishlist.php', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_buku: idBuku })
@@ -777,7 +777,7 @@ function tambahKeranjang(idBuku, btn) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menambahkan...';
 
-    fetch('/api/keranjang.php', {
+    fetch('/literaspace/api/keranjang.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_buku: idBuku, qty: 1 })

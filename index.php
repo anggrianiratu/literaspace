@@ -647,7 +647,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         </div>
 
                         <div class="book-info">
-                            <a href="literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
+                            <a href="/literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
                                 <?= htmlspecialchars(truncateText($book['judul'], 45)) ?>
                             </a>
                             <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
@@ -720,7 +720,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         </div>
 
                         <div class="book-info">
-                            <a href="literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
+                            <a href="/literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link">
                                 <?= htmlspecialchars(truncateText($book['judul'], 45)) ?>
                             </a>
                             <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
@@ -1051,7 +1051,7 @@ function tambahKeranjang(idBuku, btn) {
     <?php endif; ?>
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    fetch('/api/keranjang/add.php', {
+    fetch('/literaspace/api/keranjang.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_buku: idBuku, qty: 1 })
@@ -1077,7 +1077,7 @@ function tambahWishlist(idBuku) {
     <?php if (!$user_id): ?>
         window.location.href = '/literaspace/auth/login.php'; return;
     <?php endif; ?>
-    fetch('/api/wishlist/add.php', {
+    fetch('/literaspace/api/wishlist.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_buku: idBuku })

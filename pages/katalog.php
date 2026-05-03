@@ -761,7 +761,7 @@ function tambahKeranjang(idBuku, btn) {
     <?php endif; ?>
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:.75rem;"></i>';
-    fetch('/api/keranjang.php', {
+    fetch('/literaspace/api/keranjang.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_buku: idBuku, qty: 1 })

@@ -1,11 +1,43 @@
 <?php
 session_start();
-$user_id    = $_SESSION['user_id'] ?? 1;
-$cart_count = 0;
+require_once __DIR__ . '/../config/db.php';
 
+$user_id    = $_SESSION['user_id'] ?? null;
+$cart_count = 0;
 $cart_items = [];
 
 function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
+
+// Ambil data keranjang dari database
+try {
+    $pdo = getDB();
+    
+    if ($user_id) {
+        // Query untuk mendapatkan items di keranjang + detail buku
+        $stmt = $pdo->prepare("
+            SELECT 
+                k.id_keranjang,
+                k.qty,
+                b.id_buku,
+                b.judul,
+                b.penulis,
+                b.harga,
+                b.cover_image,
+                b.stok,
+                kat.nama_kategori
+            FROM keranjang k
+            JOIN buku b ON k.id_buku = b.id_buku
+            LEFT JOIN kategori kat ON b.id_kategori = kat.id_kategori
+            WHERE k.id_user = ?
+            ORDER BY k.id_keranjang DESC
+        ");
+        $stmt->execute([$user_id]);
+        $cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $cart_count = count($cart_items);
+    }
+} catch (PDOException $e) {
+    error_log("Error loading cart: " . $e->getMessage());
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -195,7 +227,7 @@ function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
                         <div class="cart-item-check">
                             <input type="checkbox" class="item-check" />
                         </div>
-                        <div class="cart-item-cover" style="background:<?= $item['gradient'] ?>;">
+                        <div class="cart-item-cover" style="background:linear-gradient(135deg,#1e1667,#3b2ec0);">
                             <?php if (!empty($item['cover_image']) && $item['cover_image'] !== 'default.jpg'): ?>
                                 <img src="../assets/covers/<?= htmlspecialchars($item['cover_image']) ?>" alt="<?= htmlspecialchars($item['judul']) ?>" onerror="this.style.display='none'" />
                             <?php else: ?>
@@ -204,8 +236,8 @@ function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
                         </div>
                         <div class="cart-item-info">
                             <a href="detail.php?id=<?= $item['id_buku'] ?>" class="cart-item-title"><?= htmlspecialchars($item['judul']) ?></a>
-                            <p class="cart-item-author"><?= htmlspecialchars($item['penulis']) ?></p>
-                            <span class="cart-item-cat"><?= htmlspecialchars($item['nama_kategori']) ?></span>
+                            <p class="cart-item-author"><?= htmlspecialchars($item['penulis'] ?? '—') ?></p>
+                            <span class="cart-item-cat"><?= htmlspecialchars($item['nama_kategori'] ?? 'Umum') ?></span>
                             <?php if ($item['stok'] <= 5): ?>
                                 <p class="stok-warning"><i class="fas fa-exclamation-triangle"></i> Sisa <?= $item['stok'] ?> stok</p>
                             <?php endif; ?>
