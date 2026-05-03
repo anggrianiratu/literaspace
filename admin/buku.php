@@ -745,7 +745,7 @@ function formatRupiah($n) {
             <li><a href="buku.php" class="active"><i class="fas fa-book"></i> Manajemen Buku</a></li>
             <li><a href="#"><i class="fas fa-folder"></i> Kategori</a></li>
             <li><a href="#"><i class="fas fa-shopping-bag"></i> Pesanan</a></li>
-            <li><a href="#"><i class="fas fa-users"></i> User</a></li>
+            <li><a href="user.php"><i class="fas fa-user"></i> User</a></li>
             <li><a href="#"><i class="fas fa-star"></i> Review</a></li>
             <li><a href="#"><i class="fas fa-chart-bar"></i> Laporan</a></li>
             <li><a href="#"><i class="fas fa-cog"></i> Pengaturan</a></li>
