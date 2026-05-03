@@ -73,7 +73,7 @@ $total_categories = (int)$stmt->fetchColumn();
 
 // Monthly revenue data for chart
 $stmt = $pdo->prepare("
-    SELECT DATE_FORMAT(tanggal_pesan, '%b %Y') as bulan, SUM(total_harga) as revenue
+    SELECT DATE_FORMAT(tanggal_pesan, '%Y-%m') as bulan, SUM(total_harga) as revenue
     FROM pesanan
     WHERE status_pesanan = 'selesai' AND tanggal_pesan >= DATE_SUB(NOW(), INTERVAL ? DAY)
     GROUP BY DATE_FORMAT(tanggal_pesan, '%Y-%m')
