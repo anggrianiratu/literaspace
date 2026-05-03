@@ -68,42 +68,43 @@ $total_customers = (int)$stmt->fetchColumn();
 $stmt = $pdo->query("SELECT COUNT(*) FROM buku");
 $total_books = (int)$stmt->fetchColumn();
 
-$stmt = $query = $pdo->query("SELECT COUNT(*) FROM kategori");
+$stmt = $pdo->query("SELECT COUNT(*) FROM kategori");
 $total_categories = (int)$stmt->fetchColumn();
 
 // Monthly revenue data for chart
 $stmt = $pdo->prepare("
-    SELECT DATE_FORMAT(tanggal_pesan, '%b') as bulan, SUM(total_harga) as revenue
+    SELECT DATE_FORMAT(tanggal_pesan, '%b %Y') as bulan, SUM(total_harga) as revenue
     FROM pesanan
     WHERE status_pesanan = 'selesai' AND tanggal_pesan >= DATE_SUB(NOW(), INTERVAL ? DAY)
     GROUP BY DATE_FORMAT(tanggal_pesan, '%Y-%m')
-    ORDER BY tanggal_pesan ASC
+    ORDER BY DATE_FORMAT(tanggal_pesan, '%Y-%m') ASC
 ");
 $stmt->execute([$days]);
 $monthly_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Top 5 books
-$stmt = $pdo->query("
-    SELECT b.id_buku, b.judul, b.harga, SUM(dp.qty) as total_terjual, SUM(dp.qty * dp.harga_saat_beli) as total_revenue
+$stmt = $pdo->prepare("
+    SELECT b.id_buku, b.judul, b.harga, COALESCE(SUM(dp.qty), 0) as total_terjual, COALESCE(SUM(dp.qty * dp.harga_saat_beli), 0) as total_revenue
     FROM buku b
     LEFT JOIN detail_pesanan dp ON b.id_buku = dp.id_buku
-    LEFT JOIN pesanan p ON dp.id_pesanan = p.id_pesanan
-    WHERE p.status_pesanan = 'selesai' OR p.id_pesanan IS NULL
-    GROUP BY b.id_buku
+    LEFT JOIN pesanan p ON dp.id_pesanan = p.id_pesanan AND p.status_pesanan = 'selesai'
+    GROUP BY b.id_buku, b.judul, b.harga
     ORDER BY total_terjual DESC
     LIMIT 5
 ");
+$stmt->execute();
 $top_books = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Sales status breakdown
-$stmt = $pdo->query("
+$stmt = $pdo->prepare("
     SELECT 
-        status_pesanan,
+        COALESCE(status_pesanan, 'Unknown') as status_pesanan,
         COUNT(*) as total,
-        SUM(total_harga) as revenue
+        COALESCE(SUM(total_harga), 0) as revenue
     FROM pesanan
     GROUP BY status_pesanan
 ");
+$stmt->execute();
 $status_breakdown = [];
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $status_breakdown[$row['status_pesanan']] = $row;
