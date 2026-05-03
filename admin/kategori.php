@@ -157,7 +157,6 @@ try {
     $error_message = "Terjadi kesalahan: " . htmlspecialchars($e->getMessage());
 }
 
-// Warna dot statis per kategori (karena kolom warna tidak ada di DB)
 $dot_colors = ['#7c5cfa','#2ed573','#ff4757','#ffa502','#0984e3','#fd79a8','#00b894','#e17055','#6c5ce7','#fdcb6e'];
 ?>
 <!DOCTYPE html>
@@ -291,7 +290,7 @@ $dot_colors = ['#7c5cfa','#2ed573','#ff4757','#ffa502','#0984e3','#fd79a8','#00b
             align-items: center; margin-bottom: 2rem; gap: 1rem;
         }
 
-        .page-title   { font-size: 1.75rem; font-weight: 700; color: var(--gray-800); }
+        .page-title    { font-size: 1.75rem; font-weight: 700; color: var(--gray-800); }
         .page-subtitle { font-size: .95rem; color: var(--gray-500); margin-top: .25rem; }
 
         /* ── STATS ── */
@@ -357,13 +356,37 @@ $dot_colors = ['#7c5cfa','#2ed573','#ff4757','#ffa502','#0984e3','#fd79a8','#00b
         .form-group { display: flex; flex-direction: column; gap: .5rem; }
         .form-label { font-size: .9rem; font-weight: 600; color: var(--gray-700); }
 
-        .form-input, .form-select {
-            padding: .75rem; border: 1.5px solid var(--gray-200);
-            border-radius: 8px; font-family: inherit; font-size: .95rem;
-            transition: border-color .2s; background: var(--white);
+        /* Input biasa */
+        .form-input {
+            padding: .75rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: .95rem;
+            transition: border-color .2s;
+            background: var(--white);
         }
 
-        .form-input:focus, .form-select:focus { outline: none; border-color: var(--indigo-light); }
+        .form-input:focus { outline: none; border-color: var(--indigo-light); }
+
+        /* Select dengan custom arrow segitiga indigo */
+        .form-select {
+            padding: .75rem 2.5rem .75rem .75rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: .95rem;
+            transition: border-color .2s;
+            background-color: var(--white);
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%233b2ec0' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right .9rem center;
+            cursor: pointer;
+        }
+
+        .form-select:focus { outline: none; border-color: var(--indigo-light); }
 
         /* ── ALERTS ── */
         .alert {

@@ -107,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error_message = "Format email tidak valid.";
         } else {
             try {
-                // Cek email duplikat (kecuali user itu sendiri)
                 $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
                 $stmt->execute([$email, $target_id]);
                 if ($stmt->fetch()) {
@@ -137,8 +136,6 @@ $page        = max(1, (int) ($_GET['page'] ?? 1));
 $search      = trim($_GET['search'] ?? '');
 $filter_role = in_array($_GET['role'] ?? '', ['admin', 'user']) ? $_GET['role'] : '';
 
-// Sort: tiap kolom punya arah tetap (tidak bisa dibalik user)
-// id=1,2,3... | nama=A-Z | email=A-Z | bergabung=paling dulu duluan
 $valid_sort_options = [
     'id'         => ['label' => 'ID',        'order' => 'asc'],
     'nama_depan' => ['label' => 'Nama',      'order' => 'asc'],
@@ -147,16 +144,13 @@ $valid_sort_options = [
 ];
 
 $sort = $_GET['sort'] ?? 'id';
-if (!array_key_exists($sort, $valid_sort_options)) {
-    $sort = 'id';
-}
-$order = $valid_sort_options[$sort]['order']; // arah selalu tetap
+if (!array_key_exists($sort, $valid_sort_options)) $sort = 'id';
+$order = $valid_sort_options[$sort]['order'];
 
 $per_page = 10;
 $offset   = ($page - 1) * $per_page;
 
-$where  = ["id != $admin_id"]; // tampilkan semua kecuali admin yg login — ATAU tampilkan semua
-$where  = []; // tampilkan semua user termasuk admin lain
+$where  = [];
 $params = [];
 
 if ($search) {
@@ -321,9 +315,40 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
         .filters-grid { display: grid; grid-template-columns: 1fr 180px 180px auto auto; gap: 1rem; align-items: flex-end; }
         .form-group { display: flex; flex-direction: column; gap: .4rem; }
         .form-label { font-size: .85rem; font-weight: 600; color: var(--gray-700); }
-        .form-input, .form-select { padding: .7rem .9rem; border: 1.5px solid var(--gray-200); border-radius: 8px; font-family: inherit; font-size: .9rem; transition: border-color .2s; background: var(--white); width: 100%; }
-        .form-input:focus, .form-select:focus { outline: none; border-color: var(--indigo-light); }
-        .form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b6b8a' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .9rem center; padding-right: 2.2rem; cursor: pointer; }
+
+        /* Input biasa */
+        .form-input {
+            padding: .7rem .9rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: .9rem;
+            transition: border-color .2s;
+            background: var(--white);
+            width: 100%;
+        }
+
+        .form-input:focus { outline: none; border-color: var(--indigo-light); }
+
+        /* Select dengan custom arrow indigo */
+        .form-select {
+            padding: .7rem 2.5rem .7rem .9rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: .9rem;
+            transition: border-color .2s;
+            background-color: var(--white);
+            width: 100%;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%233b2ec0' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right .9rem center;
+            cursor: pointer;
+        }
+
+        .form-select:focus { outline: none; border-color: var(--indigo-light); }
 
         /* ALERT */
         .alert { padding: .875rem 1rem; border-radius: 10px; margin-bottom: 1.25rem; display: flex; align-items: center; gap: .75rem; border-left: 4px solid; }
@@ -346,10 +371,9 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
         .user-name { font-weight: 600; font-size: .9rem; }
         .user-id   { font-size: .78rem; color: var(--gray-500); margin-top: 1px; }
 
-        /* ROLE BADGE */
         .badge { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 99px; font-size: .75rem; font-weight: 700; letter-spacing: .3px; }
-        .badge-admin  { background: rgba(59,46,192,.12); color: var(--indigo-light); }
-        .badge-user   { background: rgba(16,185,129,.12); color: #0d7a55; }
+        .badge-admin { background: rgba(59,46,192,.12); color: var(--indigo-light); }
+        .badge-user  { background: rgba(16,185,129,.12); color: #0d7a55; }
 
         .empty-state { text-align: center; padding: 3rem 1rem; color: var(--gray-500); }
         .empty-state i { font-size: 2.5rem; display: block; margin-bottom: 1rem; opacity: .4; }
@@ -374,8 +398,6 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
         .modal-footer { display: flex; gap: .75rem; justify-content: flex-end; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
         .form-row-full { margin-bottom: 1rem; }
-        .modal-box .form-input,
-        .modal-box .form-select { width: 100%; }
         .pass-note { font-size: .78rem; color: var(--gray-500); margin-top: .3rem; }
 
         @media (max-width: 900px) {
@@ -454,7 +476,7 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
             </div>
         <?php endif; ?>
 
-        <!-- STATS: Total semua, Admin, User biasa -->
+        <!-- STATS -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon" style="background:#eef2ff; color:#4f46e5;">
@@ -492,15 +514,12 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
         <div class="filters-section">
             <form method="get" action="user.php">
                 <div class="filters-grid">
-                    <!-- Search -->
                     <div class="form-group">
                         <label class="form-label">Cari User</label>
                         <input type="text" name="search" class="form-input"
                                placeholder="Nama atau email..."
                                value="<?= htmlspecialchars($search) ?>">
                     </div>
-
-                    <!-- Filter Role -->
                     <div class="form-group">
                         <label class="form-label">Role</label>
                         <select name="role" class="form-select">
@@ -509,8 +528,6 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                             <option value="user"  <?= $filter_role === 'user'  ? 'selected' : '' ?>>User</option>
                         </select>
                     </div>
-
-                    <!-- Sort -->
                     <div class="form-group">
                         <label class="form-label">Urutkan</label>
                         <select name="sort" class="form-select">
@@ -521,7 +538,6 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                             <?php endforeach; ?>
                         </select>
                     </div>
-
                     <button type="submit" class="btn btn-primary" style="align-self:flex-end;">
                         <i class="fas fa-search"></i> Cari
                     </button>
@@ -538,7 +554,6 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                 <table class="table">
                     <thead>
                         <?php
-                        // Helper: tampilkan ikon sort di header kolom yang aktif
                         function sortIcon($col, $sort, $order) {
                             if ($sort !== $col) return '<i class="fas fa-sort" style="opacity:.25;font-size:.7rem;margin-left:.3rem;"></i>';
                             $icon = $order === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
@@ -549,7 +564,7 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                             <th>ID <?= sortIcon('id', $sort, $order) ?></th>
                             <th>Nama User <?= sortIcon('nama_depan', $sort, $order) ?></th>
                             <th>Email <?= sortIcon('email', $sort, $order) ?></th>
-                            <th>Role <?= sortIcon('role', $sort, $order) ?></th>
+                            <th>Role</th>
                             <th style="text-align:center;">Pesanan</th>
                             <th>Bergabung <?= sortIcon('created_at', $sort, $order) ?></th>
                             <th>Aksi</th>
@@ -598,7 +613,6 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                             <td style="color:var(--gray-500); font-size:.85rem;"><?= $joined ?></td>
                             <td>
                                 <div style="display:flex; gap:.4rem;">
-                                    <!-- Tombol Edit -->
                                     <button class="btn btn-warning btn-sm"
                                         onclick="openEditModal(
                                             <?= $u['id'] ?>,
@@ -606,21 +620,17 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                                             '<?= htmlspecialchars(addslashes($u['nama_belakang'])) ?>',
                                             '<?= htmlspecialchars(addslashes($u['email'])) ?>',
                                             '<?= $u['role'] ?>'
-                                        )"
-                                        title="Edit User">
+                                        )">
                                         <i class="fas fa-pencil-alt"></i> Edit
                                     </button>
-                                    <!-- Tombol Hapus (nonaktif untuk akun sendiri) -->
                                     <?php if (!$is_self): ?>
                                     <button class="btn btn-danger btn-sm"
-                                        onclick="openDeleteModal(<?= $u['id'] ?>, '<?= htmlspecialchars(addslashes($fullname)) ?>')"
-                                        title="Hapus User">
+                                        onclick="openDeleteModal(<?= $u['id'] ?>, '<?= htmlspecialchars(addslashes($fullname)) ?>')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                     <?php else: ?>
                                     <button class="btn btn-sm" disabled
-                                        style="opacity:.35; cursor:not-allowed; background:var(--gray-100);"
-                                        title="Tidak bisa hapus akun sendiri">
+                                        style="opacity:.35; cursor:not-allowed; background:var(--gray-100);">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                     <?php endif; ?>
@@ -633,9 +643,7 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                             <td colspan="7">
                                 <div class="empty-state">
                                     <i class="fas fa-users-slash"></i>
-                                    <?= $search || $filter_role
-                                        ? 'Tidak ada user yang sesuai filter'
-                                        : 'Belum ada user terdaftar' ?>
+                                    <?= $search || $filter_role ? 'Tidak ada user yang sesuai filter' : 'Belum ada user terdaftar' ?>
                                 </div>
                             </td>
                         </tr>
@@ -658,7 +666,7 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                 <div class="pagination">
                     <?php $base = "?search=" . urlencode($search) . "&sort=" . urlencode($sort) . "&role=" . urlencode($filter_role); ?>
                     <?php if ($page > 1): ?>
-                        <a href="<?= $base ?>&page=1" title="Pertama"><i class="fas fa-angle-double-left" style="font-size:.7rem;"></i></a>
+                        <a href="<?= $base ?>&page=1"><i class="fas fa-angle-double-left" style="font-size:.7rem;"></i></a>
                         <a href="<?= $base ?>&page=<?= $page - 1 ?>"><i class="fas fa-angle-left" style="font-size:.7rem;"></i></a>
                     <?php endif; ?>
                     <?php
@@ -667,23 +675,22 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
                     if ($start > 1) echo '<span class="dots">…</span>';
                     for ($i = $start; $i <= $end; $i++):
                     ?>
-                        <a href="<?= $base ?>&page=<?= $i ?>"
-                           class="<?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+                        <a href="<?= $base ?>&page=<?= $i ?>" class="<?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
                     <?php endfor;
                     if ($end < $total_pages) echo '<span class="dots">…</span>';
                     if ($page < $total_pages): ?>
                         <a href="<?= $base ?>&page=<?= $page + 1 ?>"><i class="fas fa-angle-right" style="font-size:.7rem;"></i></a>
-                        <a href="<?= $base ?>&page=<?= $total_pages ?>" title="Terakhir"><i class="fas fa-angle-double-right" style="font-size:.7rem;"></i></a>
+                        <a href="<?= $base ?>&page=<?= $total_pages ?>"><i class="fas fa-angle-double-right" style="font-size:.7rem;"></i></a>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
             </div>
         </div>
 
-    </div><!-- /page-content -->
-</div><!-- /main-content -->
+    </div>
+</div>
 
-<!-- ===================== MODAL: ADD USER ===================== -->
+<!-- MODAL: ADD USER -->
 <div class="modal" id="addModal">
     <div class="modal-box">
         <div class="modal-title">
@@ -727,7 +734,7 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
     </div>
 </div>
 
-<!-- ===================== MODAL: EDIT USER ===================== -->
+<!-- MODAL: EDIT USER -->
 <div class="modal" id="editModal">
     <div class="modal-box">
         <div class="modal-title">
@@ -773,7 +780,7 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
     </div>
 </div>
 
-<!-- ===================== MODAL: DELETE ===================== -->
+<!-- MODAL: DELETE -->
 <div class="modal" id="deleteModal">
     <div class="modal-box">
         <div class="modal-title">
@@ -803,12 +810,10 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
     function openModal(id)  { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-    // Tutup modal kalau klik backdrop
     document.querySelectorAll('.modal').forEach(m => {
         m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
     });
 
-    // Buka modal edit & isi data
     function openEditModal(id, namaDepan, namaBelakang, email, role) {
         document.getElementById('editUserId').value       = id;
         document.getElementById('editNamaDepan').value    = namaDepan;
@@ -818,14 +823,12 @@ $avatar_colors = ['#4f46e5','#10b981','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#
         openModal('editModal');
     }
 
-    // Buka modal hapus
     function openDeleteModal(id, name) {
-        document.getElementById('deleteUserId').value      = id;
+        document.getElementById('deleteUserId').value        = id;
         document.getElementById('deleteUserName').textContent = name;
         openModal('deleteModal');
     }
 
-    // Auto-fade alert setelah 4 detik
     setTimeout(() => {
         document.querySelectorAll('.alert').forEach(el => {
             el.style.transition = 'opacity .5s';
