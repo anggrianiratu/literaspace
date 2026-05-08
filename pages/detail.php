@@ -26,7 +26,6 @@ if ($id_buku <= 0) {
 }
 
 try {
-    // Get book detail
     $stmt = $pdo->prepare("
         SELECT b.*, k.nama_kategori
         FROM buku b
@@ -41,7 +40,6 @@ try {
         exit;
     }
 
-    // Get reviews with user info
     $stmt = $pdo->prepare("
         SELECT r.id_review, r.rating, r.komentar, r.created_at,
                u.nama_depan, u.nama_belakang
@@ -53,7 +51,6 @@ try {
     $stmt->execute([$id_buku]);
     $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get average rating and count
     $stmt = $pdo->prepare("
         SELECT COALESCE(ROUND(AVG(rating),1),0) AS avg_rating,
                COUNT(*) AS review_count
@@ -65,7 +62,6 @@ try {
     $avg_rating = $rating_data['avg_rating'] ?? 0;
     $review_count = $rating_data['review_count'] ?? 0;
 
-    // Get user's own review if logged in
     if ($user_id) {
         $stmt = $pdo->prepare("
             SELECT id_review, rating, komentar
@@ -76,7 +72,6 @@ try {
         $stmt->execute([$user_id, $id_buku]);
         $user_review = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Get cart and wishlist counts
         $sc = $pdo->prepare("SELECT COUNT(*) FROM keranjang WHERE id_user = ?");
         $sc->execute([$user_id]);
         $cart_count = (int)$sc->fetchColumn();
@@ -84,6 +79,11 @@ try {
         $sw = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE id_user = ?");
         $sw->execute([$user_id]);
         $wishlist_count = (int)$sw->fetchColumn();
+
+        // Cek apakah buku ini sudah di wishlist
+        $swb = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE id_user = ? AND id_buku = ?");
+        $swb->execute([$user_id, $id_buku]);
+        $in_wishlist = (int)$swb->fetchColumn() > 0;
     }
 } catch (PDOException $e) {
     $error = "Error: " . $e->getMessage();
@@ -91,12 +91,11 @@ try {
 
 function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
 
-function starHtml($rating) {
+function starHtml($rating, $size = '0.8rem') {
     $html = '';
     for ($i = 1; $i <= 5; $i++) {
-        $html .= $i <= round($rating)
-            ? '<i class="fas fa-star" style="color:#f59e0b;font-size:.75rem;"></i>'
-            : '<i class="far fa-star" style="color:#d1d5db;font-size:.75rem;"></i>';
+        $color = $i <= round($rating) ? '#f59e0b' : '#d1d5db';
+        $html .= "<i class=\"" . ($i <= round($rating) ? 'fas' : 'far') . " fa-star\" style=\"color:{$color};font-size:{$size};\"></i>";
     }
     return $html;
 }
@@ -109,7 +108,7 @@ function starHtml($rating) {
     <title><?= htmlspecialchars($book['judul'] ?? 'Detail Buku') ?> — LiteraSpace</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         :root {
@@ -120,13 +119,16 @@ function starHtml($rating) {
             --gray-50:      #f8f8fb;
             --gray-100:     #f0f0f7;
             --gray-200:     #e2e2ef;
+            --gray-400:     #9090b0;
             --gray-500:     #6b6b8a;
             --gray-800:     #1a1a2e;
             --error:        #e03c3c;
             --success:      #1db87d;
-            --amber:        #d4920a;
+            --amber:        #f59e0b;
             --radius:       14px;
+            --shadow-sm:    0 2px 8px rgba(30,22,103,.08);
             --shadow:       0 4px 24px rgba(30,22,103,.10);
+            --shadow-lg:    0 12px 40px rgba(30,22,103,.15);
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -135,39 +137,36 @@ function starHtml($rating) {
             font-family: 'DM Sans', sans-serif;
             background: var(--gray-50);
             color: var(--gray-800);
+            min-height: 100vh;
         }
 
-        /* Navbar */
+        /* ── NAVBAR ── */
         .navbar {
             position: sticky; top: 0; z-index: 50;
             background: var(--white);
             box-shadow: 0 2px 16px rgba(30,22,103,.09);
             border-bottom: 1.5px solid var(--gray-200);
         }
-
         .navbar-inner {
             max-width: 1280px; margin: 0 auto;
             padding: 0 1.5rem;
             display: flex; align-items: center; justify-content: space-between;
             height: 68px; gap: 1rem;
         }
-
+        .logo-link { display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0; }
         .logo-icon {
             width: 40px; height: 40px;
             background: var(--indigo-deep);
             border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
             transition: background .2s, transform .2s;
-            flex-shrink: 0;
         }
         .logo-icon:hover { background: var(--indigo-light); transform: scale(1.05); }
         .logo-icon svg { width: 20px; height: 20px; fill: var(--white); }
-
         .logo-text {
             font-family: 'Playfair Display', serif;
             font-size: 1.15rem; color: var(--gray-800); font-weight: 700;
         }
-
         .search-wrap { flex: 1; max-width: 420px; position: relative; }
         .search-input {
             width: 100%; padding: .6rem 2.2rem .6rem 1rem;
@@ -188,7 +187,6 @@ function starHtml($rating) {
             color: var(--gray-500); font-size: .85rem; transition: color .2s;
         }
         .search-btn:hover { color: var(--indigo-light); }
-
         .nav-icon {
             color: var(--gray-500); font-size: 1.15rem;
             text-decoration: none; position: relative; transition: color .2s;
@@ -201,7 +199,6 @@ function starHtml($rating) {
             width: 17px; height: 17px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
         }
-
         .btn-auth {
             padding: .42rem 1rem; background: var(--indigo-deep); color: var(--white);
             border: none; border-radius: 8px;
@@ -209,7 +206,6 @@ function starHtml($rating) {
             cursor: pointer; text-decoration: none; transition: background .2s;
         }
         .btn-auth:hover { background: var(--indigo-light); }
-
         .dropdown-wrap { position: relative; }
         .dropdown-menu {
             position: absolute; right: 0; top: calc(100% + 8px);
@@ -224,245 +220,479 @@ function starHtml($rating) {
         .dropdown-menu a { display: block; padding: .62rem 1rem; font-size: .86rem; color: var(--gray-800); text-decoration: none; transition: background .15s; }
         .dropdown-menu a:first-child { border-radius: 8px 8px 0 0; }
         .dropdown-menu a:last-child { border-radius: 0 0 8px 8px; color: var(--error); }
-        .dropdown-menu a:hover { background: rgba(30,22,103,.05); color: var(--indigo-light); }
+        .dropdown-menu a:hover { background: rgba(30,22,103,.05); }
 
-        /* Page */
+        /* ── PAGE ── */
         .page-inner {
-            max-width: 1280px; margin: 0 auto;
-            padding: 2rem 1.5rem;
+            max-width: 1100px; margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
         }
 
         .breadcrumb {
             display: flex; gap: .5rem; margin-bottom: 2rem;
             font-size: .85rem; color: var(--gray-500);
+            flex-wrap: wrap;
         }
         .breadcrumb a { color: var(--indigo-light); text-decoration: none; }
         .breadcrumb a:hover { text-decoration: underline; }
 
-        .detail-layout {
-            display: grid; grid-template-columns: 300px 1fr;
-            gap: 3rem; margin-bottom: 3rem;
-        }
-        @media (max-width: 768px) {
-            .detail-layout { grid-template-columns: 1fr; gap: 2rem; }
+        /* ── DETAIL CARD ── */
+        .detail-card {
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+            margin-bottom: 2rem;
         }
 
-        /* Cover Section */
-        .cover-section {
-            display: flex; flex-direction: column; gap: 1.5rem;
+        .detail-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 0;
+        }
+
+        @media (max-width: 768px) {
+            .detail-layout { grid-template-columns: 1fr; }
+        }
+
+        /* Cover column */
+        .cover-column {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.25rem;
+            background: var(--gray-50);
+            border-right: 1px solid var(--gray-200);
+        }
+
+        @media (max-width: 768px) {
+            .cover-column { border-right: none; border-bottom: 1px solid var(--gray-200); }
         }
 
         .cover-img {
-            width: 100%; aspect-ratio: 3/4;
+            width: 100%; max-width: 220px;
+            aspect-ratio: 3/4;
             background: linear-gradient(135deg,#1e1667,#3b2ec0);
             border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 16px 48px rgba(30,22,103,.22), 0 4px 12px rgba(30,22,103,.12);
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 12px 40px rgba(30,22,103,.15);
+            position: relative;
         }
-        .cover-img img {
-            width: 100%; height: 100%; object-fit: cover;
+        .cover-img img { width: 100%; height: 100%; object-fit: cover; }
+        .cover-img svg { width: 60px; height: 60px; fill: rgba(255,255,255,.3); }
+
+        /* Qty & action buttons */
+        .qty-row {
+            display: flex; align-items: center; gap: .6rem;
+            width: 100%; max-width: 220px;
         }
-        .cover-img svg {
-            width: 60px; height: 60px; fill: rgba(255,255,255,.3);
+        .qty-btn {
+            width: 36px; height: 36px;
+            border: 1.5px solid var(--gray-200);
+            background: var(--white);
+            border-radius: 8px;
+            font-size: 1.1rem; font-weight: 700;
+            color: var(--indigo-deep);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: border-color .2s, background .2s;
+            flex-shrink: 0;
+        }
+        .qty-btn:hover { border-color: var(--indigo-light); background: var(--gray-50); }
+        .qty-input {
+            flex: 1; height: 36px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 8px;
+            text-align: center;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .95rem; font-weight: 600;
+            color: var(--gray-800);
+            outline: none;
+        }
+        .qty-input:focus { border-color: var(--indigo-light); }
+
+        .action-row {
+            display: flex; gap: .6rem;
+            width: 100%; max-width: 220px;
         }
 
-        .btn-primary {
-            padding: .75rem 1.5rem;
-            background: var(--indigo-deep); color: var(--white);
+        .btn-cart {
+            flex: 1;
+            padding: .7rem .5rem;
+            background: var(--indigo-deep);
+            color: var(--white);
             border: none; border-radius: 10px;
-            font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 700;
-            cursor: pointer; text-decoration: none;
-            transition: background .2s, transform .1s;
-            display: flex; align-items: center; justify-content: center; gap: .5rem;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .85rem; font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: .4rem;
+            transition: background .2s, transform .1s, box-shadow .2s;
+            box-shadow: 0 4px 14px rgba(30,22,103,.25);
         }
-        .btn-primary:hover { background: var(--indigo-light); }
-        .btn-primary:active { transform: scale(.98); }
-        .btn-primary:disabled { background: var(--gray-500); cursor: not-allowed; }
+        .btn-cart:hover { background: var(--indigo-light); box-shadow: 0 6px 20px rgba(59,46,192,.35); }
+        .btn-cart:active { transform: scale(.97); }
+        .btn-cart:disabled { background: var(--gray-400); box-shadow: none; cursor: not-allowed; }
 
-        .btn-secondary {
-            padding: .75rem 1.5rem;
-            background: var(--white); color: var(--indigo-deep);
-            border: 1.5px solid var(--indigo-light); border-radius: 10px;
-            font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 600;
-            cursor: pointer; text-decoration: none;
-            transition: background .2s;
-            display: flex; align-items: center; justify-content: center; gap: .5rem;
+        .btn-buynow {
+            width: 100%; max-width: 220px;
+            padding: .7rem .5rem;
+            background: transparent;
+            color: var(--indigo-deep);
+            border: 2px solid var(--indigo-deep);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .85rem; font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: .4rem;
+            transition: background .2s, color .2s;
         }
-        .btn-secondary:hover { background: var(--gray-50); }
+        .btn-buynow:hover { background: var(--indigo-deep); color: var(--white); }
 
-        /* Info Section */
-        .info-section h1 {
+        .btn-wishlist {
+            width: 42px; height: 42px; flex-shrink: 0;
+            background: var(--white);
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: border-color .2s, background .2s, color .2s;
+            color: var(--gray-400);
+            font-size: 1rem;
+        }
+        .btn-wishlist:hover { color: var(--error); background: rgba(224,60,60,.06); }
+        .btn-wishlist.active { color: var(--error); }
+
+        /* Info column */
+        .info-column {
+            padding: 2rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: .3rem .8rem;
+            background: rgba(59,46,192,.1);
+            color: var(--indigo-light);
+            border-radius: 20px;
+            font-size: .78rem;
+            font-weight: 600;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            align-self: flex-start;
+        }
+
+        .book-title {
             font-family: 'Playfair Display', serif;
-            font-size: 2rem; color: var(--gray-800);
-            margin-bottom: 1rem; line-height: 1.2;
+            font-size: 1.9rem;
+            color: var(--gray-800);
+            line-height: 1.25;
         }
 
-        .info-meta {
-            display: flex; flex-direction: column; gap: .5rem;
-            margin-bottom: 1.5rem; font-size: .95rem;
-        }
-        .info-meta-item {
-            display: flex; align-items: center; gap: .5rem;
+        .book-author {
+            font-size: .95rem;
             color: var(--gray-500);
         }
-        .info-meta-item strong { color: var(--gray-800); }
+        .book-author strong {
+            color: var(--gray-800);
+        }
 
-        .rating-section {
+        .rating-row {
+            display: flex; align-items: center; gap: .6rem;
+        }
+        .rating-num {
+            font-size: 1rem; font-weight: 700; color: var(--amber);
+        }
+        .rating-stars-row { display: flex; gap: .15rem; align-items: center; }
+        .rating-reviews {
+            font-size: .85rem; color: var(--gray-400);
+        }
+
+        .divider { height: 1px; background: var(--gray-100); }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: .75rem 1.5rem;
+        }
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: .15rem;
+        }
+        .meta-label {
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .meta-value {
+            font-size: .92rem;
+            color: var(--gray-800);
+            font-weight: 500;
+        }
+
+        .deskripsi-text {
+            font-size: .9rem;
+            color: var(--gray-500);
+            line-height: 1.75;
+            text-align: justify;
+        }
+
+        .price-row {
             display: flex; align-items: center; gap: 1rem;
-            margin-bottom: 1.5rem;
-            padding: 1rem; background: var(--gray-50);
-            border-radius: 10px;
+            flex-wrap: wrap;
         }
-        .rating-display {
-            display: flex; flex-direction: column; align-items: center;
-            gap: .3rem;
-        }
-        .rating-number {
-            font-size: 2rem; font-weight: 700;
+        .price-main {
+            font-size: 1.75rem;
+            font-weight: 700;
             color: var(--indigo-deep);
+            letter-spacing: -.02em;
         }
-        .rating-stars { display: flex; gap: .2rem; }
-        .rating-count {
-            font-size: .85rem; color: var(--gray-500);
-            margin-left: .5rem; padding-left: .5rem;
-            border-left: 1px solid var(--gray-200);
-        }
-
-        .price-section {
-            font-size: 1.8rem; font-weight: 700;
-            color: var(--indigo-deep); margin-bottom: 1.5rem;
-        }
-
         .stok-badge {
-            display: inline-flex; align-items: center; gap: .4rem;
-            padding: .5rem 1rem; border-radius: 8px;
-            font-size: .85rem; font-weight: 600; margin-bottom: 1.5rem;
+            display: inline-flex; align-items: center; gap: .35rem;
+            padding: .35rem .8rem;
+            border-radius: 20px;
+            font-size: .8rem; font-weight: 600;
         }
-        .stok-badge.tersedia { background: rgba(29,184,125,.1); color: #1db87d; }
-        .stok-badge.terbatas { background: rgba(212,146,10,.1); color: #d4920a; }
-        .stok-badge.habis { background: rgba(224,60,60,.1); color: #e03c3c; }
+        .stok-badge.tersedia { background: rgba(29,184,125,.12); color: #1db87d; }
+        .stok-badge.terbatas { background: rgba(212,146,10,.12); color: #d4920a; }
+        .stok-badge.habis    { background: rgba(224,60,60,.12);  color: #e03c3c; }
 
-        .btn-group {
-            display: flex; gap: .75rem; flex-direction: column;
+        /* Desktop action strip at bottom of info */
+        .desktop-actions {
+            display: flex; gap: .75rem; align-items: center;
+            flex-wrap: wrap;
+            margin-top: .5rem;
+        }
+        .desktop-actions .btn-cart   { flex: none; padding: .75rem 1.6rem; font-size: .9rem; }
+        .desktop-actions .btn-buynow { flex: none; padding: .75rem 1.6rem; font-size: .9rem; }
+        .desktop-actions .btn-wishlist { width: 48px; height: 48px; font-size: 1.1rem; }
+
+        /* ── SYNOPSIS ── */
+        .section-card {
+            background: var(--white);
+            border-radius: 16px;
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+            padding: 2rem;
             margin-bottom: 2rem;
         }
-
-        /* Synopsis */
-        .synopsis-section {
-            background: var(--white);
-            border-radius: 12px;
-            border: 1.5px solid var(--gray-200);
-            padding: 2rem;
-            margin-bottom: 3rem;
-        }
-        .synopsis-title {
+        .section-title {
             font-family: 'Playfair Display', serif;
-            font-size: 1.3rem; color: var(--gray-800);
-            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            color: var(--gray-800);
+            margin-bottom: 1.25rem;
+            padding-bottom: .75rem;
+            border-bottom: 2px solid var(--gray-100);
         }
         .synopsis-text {
-            line-height: 1.8; color: var(--gray-500);
+            color: var(--gray-500);
+            line-height: 1.8;
+            font-size: .93rem;
         }
 
-        /* Reviews */
-        .reviews-section {
-            background: var(--white);
-            border-radius: 12px;
+        /* ── REVIEW FORM ── */
+        .review-form-box {
+            background: var(--gray-50);
             border: 1.5px solid var(--gray-200);
-            padding: 2rem;
+            border-radius: 14px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
         }
-        .reviews-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.3rem; color: var(--gray-800);
-            margin-bottom: 1.5rem;
+        .review-form-title {
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--gray-800);
+            margin-bottom: 1.25rem;
         }
+        .form-label {
+            display: block;
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            margin-bottom: .5rem;
+        }
+        .star-selector {
+            display: flex; gap: .5rem;
+            margin-bottom: .4rem;
+        }
+        .star-selector i {
+            font-size: 1.6rem;
+            cursor: pointer;
+            transition: color .15s, transform .1s;
+        }
+        .star-selector i:hover { transform: scale(1.2); }
+        .star-label {
+            font-size: .82rem; color: var(--gray-400); margin-bottom: 1.25rem;
+        }
+        .review-textarea {
+            width: 100%;
+            padding: .9rem 1rem;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            color: var(--gray-800);
+            resize: vertical;
+            outline: none;
+            min-height: 110px;
+            transition: border-color .2s, box-shadow .2s;
+            background: var(--white);
+        }
+        .review-textarea:focus {
+            border-color: var(--indigo-light);
+            box-shadow: 0 0 0 3px rgba(59,46,192,.08);
+        }
+        .char-count {
+            font-size: .78rem; color: var(--gray-400);
+            text-align: right; margin-top: .3rem; margin-bottom: 1.25rem;
+        }
+        .review-form-actions { display: flex; gap: .75rem; }
+        .btn-submit-review {
+            flex: 1;
+            padding: .7rem 1rem;
+            background: var(--indigo-deep); color: var(--white);
+            border: none; border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem; font-weight: 700;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: .4rem;
+            transition: background .2s;
+        }
+        .btn-submit-review:hover { background: var(--indigo-light); }
+        .btn-submit-review:disabled { background: var(--gray-400); cursor: not-allowed; }
+        .btn-reset-review {
+            padding: .7rem 1.25rem;
+            background: var(--white); color: var(--gray-500);
+            border: 1.5px solid var(--gray-200); border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem; font-weight: 600;
+            cursor: pointer;
+            transition: border-color .2s;
+        }
+        .btn-reset-review:hover { border-color: var(--gray-400); }
+
+        .existing-review-note {
+            display: flex; align-items: center; gap: .5rem;
+            margin-top: 1rem;
+            padding: .75rem 1rem;
+            background: rgba(59,46,192,.06);
+            border-left: 3px solid var(--indigo-light);
+            border-radius: 0 8px 8px 0;
+            font-size: .85rem; color: var(--gray-500);
+        }
+
+        /* ── REVIEW LIST ── */
+        .reviews-list { display: flex; flex-direction: column; gap: 0; }
 
         .review-item {
-            padding: 1.5rem;
+            padding: 1.5rem 0;
             border-bottom: 1px solid var(--gray-100);
+            animation: fadeIn .3s ease;
         }
+        .review-item:first-child { padding-top: 0; }
         .review-item:last-child { border-bottom: none; }
 
-        .review-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: .75rem;
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+        .review-top {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            gap: 1rem; margin-bottom: .75rem;
         }
-        .review-user {
-            font-weight: 600; color: var(--gray-800);
-            font-size: .95rem;
+        .reviewer-avatar {
+            width: 40px; height: 40px; flex-shrink: 0;
+            background: linear-gradient(135deg, var(--indigo-deep), var(--indigo-light));
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .85rem; font-weight: 700; color: var(--white);
         }
-        .review-date {
-            font-size: .8rem; color: var(--gray-500);
+        .reviewer-info { flex: 1; }
+        .reviewer-name {
+            font-weight: 700; font-size: .92rem; color: var(--gray-800);
         }
-        .review-stars { display: flex; gap: .2rem; }
-        .review-text {
-            color: var(--gray-500); line-height: 1.6;
-            font-size: .9rem; margin-top: .5rem;
+        .reviewer-meta {
+            display: flex; align-items: center; gap: .5rem;
+            margin-top: .2rem;
+        }
+        .reviewer-stars { display: flex; gap: .1rem; }
+        .reviewer-date {
+            font-size: .78rem; color: var(--gray-400);
+        }
+        .review-body {
+            font-size: .9rem; color: var(--gray-500);
+            line-height: 1.65;
+            padding-left: 52px;
         }
 
         .no-reviews {
-            text-align: center; padding: 2rem;
-            color: var(--gray-500);
+            text-align: center; padding: 3rem 2rem;
+            color: var(--gray-400);
         }
+        .no-reviews i { font-size: 2.5rem; margin-bottom: .75rem; display: block; }
 
-        /* Review Form */
-        .review-form-container {
-            background: var(--gray-50);
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: 1.5px solid var(--gray-200);
+        /* ── LOGIN PROMPT ── */
+        .login-prompt {
+            padding: 2rem; background: var(--gray-50); border-radius: 14px;
+            text-align: center; border: 1.5px dashed var(--gray-200);
             margin-bottom: 2rem;
         }
-
-        .form-group {
-            margin-bottom: 1.5rem;
+        .login-prompt i { font-size: 2rem; color: var(--gray-200); margin-bottom: .75rem; display: block; }
+        .login-prompt p { color: var(--gray-500); margin-bottom: 1.25rem; font-size: .9rem; }
+        .btn-login-link {
+            display: inline-flex; align-items: center; gap: .4rem;
+            padding: .65rem 1.4rem;
+            background: var(--indigo-deep); color: var(--white);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif; font-size: .88rem; font-weight: 700;
+            text-decoration: none; transition: background .2s;
         }
+        .btn-login-link:hover { background: var(--indigo-light); }
 
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            color: var(--gray-800);
-            margin-bottom: .5rem;
-            font-size: .9rem;
-        }
-
-        .star-selector {
-            display: flex;
-            gap: .5rem;
-        }
-
-        .star-selector i {
-            cursor: pointer;
-            transition: color .2s, transform .1s;
-        }
-
-        .star-selector i:hover {
-            transform: scale(1.15);
-        }
-
-        /* Toast */
+        /* ── TOAST ── */
         #toast {
-            position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999;
-            padding: .7rem 1.1rem; border-radius: 10px;
-            color: var(--white); font-size: .87rem;
+            position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+            padding: .75rem 1.25rem;
+            border-radius: 12px;
+            color: var(--white); font-size: .88rem; font-weight: 500;
             display: flex; align-items: center; gap: .5rem;
-            box-shadow: 0 8px 24px rgba(0,0,0,.18);
-            transform: translateY(80px); opacity: 0;
-            transition: all .3s; pointer-events: none;
+            box-shadow: 0 8px 30px rgba(0,0,0,.2);
+            transform: translateY(90px); opacity: 0;
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s;
+            pointer-events: none; max-width: 320px;
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+
+        @media (min-width: 600px) {
+            .logo-text { display: inline !important; }
+        }
+        @media (max-width: 599px) {
+            .logo-text { display: none; }
+            .info-column { padding: 1.5rem; }
+            .cover-column { padding: 1.5rem; }
+            .book-title { font-size: 1.4rem; }
         }
     </style>
 </head>
 <body>
 
-<!-- Navbar -->
+<!-- ── NAVBAR ── -->
 <nav class="navbar">
     <div class="navbar-inner">
-        <a href="../index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
+        <a href="../index.php" class="logo-link">
             <div class="logo-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
             </div>
-            <span class="logo-text" style="display:none;">LiteraSpace</span>
+            <span class="logo-text">LiteraSpace</span>
         </a>
 
         <div class="search-wrap">
@@ -482,7 +712,6 @@ function starHtml($rating) {
                 <i class="far fa-heart"></i>
                 <?php if ($wishlist_count > 0): ?><span class="nav-badge"><?= min($wishlist_count, 99) ?></span><?php endif; ?>
             </a>
-
             <?php if ($user_id): ?>
                 <div class="dropdown-wrap">
                     <button style="background:none;border:none;cursor:pointer;" class="nav-icon">
@@ -501,17 +730,18 @@ function starHtml($rating) {
     </div>
 </nav>
 
-<!-- Main Content -->
+<!-- ── MAIN ── -->
 <div class="page-inner">
     <?php if (!$book): ?>
-        <div style="text-align:center; padding:4rem 2rem;">
+        <div style="text-align:center; padding:5rem 2rem;">
             <i class="fas fa-exclamation-circle" style="font-size:3rem; color:var(--gray-200); margin-bottom:1rem; display:block;"></i>
             <p style="color:var(--gray-500); margin-bottom:1.5rem;">Buku tidak ditemukan</p>
-            <a href="kategori.php" class="btn-secondary">
+            <a href="kategori.php" style="display:inline-flex; align-items:center; gap:.4rem; padding:.65rem 1.4rem; background:var(--indigo-deep); color:var(--white); border-radius:10px; font-weight:700; text-decoration:none;">
                 <i class="fas fa-arrow-left"></i> Kembali ke Katalog
             </a>
         </div>
     <?php else: ?>
+
         <!-- Breadcrumb -->
         <div class="breadcrumb">
             <a href="../index.php">Beranda</a>
@@ -521,363 +751,377 @@ function starHtml($rating) {
             <span><?= htmlspecialchars($book['judul']) ?></span>
         </div>
 
-        <!-- Detail Layout -->
-        <div class="detail-layout">
-            <!-- Cover Section -->
-            <div class="cover-section">
-                <div class="cover-img">
-                    <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
-                        <img src="../assets/covers/<?= htmlspecialchars($book['cover_image']) ?>" alt="<?= htmlspecialchars($book['judul']) ?>" />
-                    <?php else: ?>
-                        <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
-                    <?php endif; ?>
-                </div>
-                <div class="btn-group">
-                    <button class="btn-primary" onclick="tambahKeranjang(<?= $book['id_buku'] ?>)" <?= ($book['stok'] <= 0) ? 'disabled' : '' ?>>
-                        <i class="fas fa-cart-plus"></i> Tambah ke Keranjang
-                    </button>
-                    <button class="btn-secondary" onclick="tambahWishlist(<?= $book['id_buku'] ?>)">
-                        <i class="far fa-heart"></i> Simpan ke Wishlist
-                    </button>
-                </div>
-            </div>
+        <!-- ── DETAIL CARD ── -->
+        <div class="detail-card">
+            <div class="detail-layout">
 
-            <!-- Info Section -->
-            <div>
-                <h1><?= htmlspecialchars($book['judul']) ?></h1>
+                <!-- Cover Column -->
+                <div class="cover-column">
+                    <div class="cover-img">
+                        <?php if (!empty($book['cover_image']) && $book['cover_image'] !== 'default.jpg'): ?>
+                            <img src="../assets/covers/<?= htmlspecialchars($book['cover_image']) ?>"
+                                 alt="<?= htmlspecialchars($book['judul']) ?>" />
+                        <?php else: ?>
+                            <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
+                        <?php endif; ?>
+                    </div>
 
-                <div class="info-meta">
-                    <div class="info-meta-item">
-                        <i class="fas fa-user" style="width:1.2rem; color:var(--indigo-light);"></i>
-                        <strong>Penulis:</strong> <?= htmlspecialchars($book['penulis'] ?? '—') ?>
-                    </div>
-                    <div class="info-meta-item">
-                        <i class="fas fa-building" style="width:1.2rem; color:var(--indigo-light);"></i>
-                        <strong>Penerbit:</strong> <?= htmlspecialchars($book['penerbit'] ?? '—') ?>
-                    </div>
-                    <?php if (!empty($book['isbn'])): ?>
-                    <div class="info-meta-item">
-                        <i class="fas fa-barcode" style="width:1.2rem; color:var(--indigo-light);"></i>
-                        <strong>ISBN:</strong> <?= htmlspecialchars($book['isbn']) ?>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($book['halaman'])): ?>
-                    <div class="info-meta-item">
-                        <i class="fas fa-book-open" style="width:1.2rem; color:var(--indigo-light);"></i>
-                        <strong>Halaman:</strong> <?= htmlspecialchars($book['halaman']) ?>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($book['nama_kategori'])): ?>
-                    <div class="info-meta-item">
-                        <i class="fas fa-tag" style="width:1.2rem; color:var(--indigo-light);"></i>
-                        <strong>Kategori:</strong> <?= htmlspecialchars($book['nama_kategori']) ?>
-                    </div>
-                    <?php endif; ?>
-                </div>
-
-                <!-- Rating -->
-                <div class="rating-section">
-                    <div class="rating-display">
-                        <div class="rating-number"><?= $avg_rating ?></div>
-                        <div class="rating-stars"><?= starHtml($avg_rating) ?></div>
-                    </div>
-                    <div class="rating-count"><?= $review_count ?> ulasan</div>
-                </div>
-
-                <!-- Price & Stock -->
-                <div class="price-section">
-                    <?= formatRupiah($book['harga']) ?>
-                </div>
-
-                <?php
-                $stok_class = ($book['stok'] > 10) ? 'tersedia' : (($book['stok'] > 0) ? 'terbatas' : 'habis');
-                $stok_label = ($book['stok'] > 10) ? 'Tersedia' : (($book['stok'] > 0) ? 'Terbatas' : 'Stok Habis');
-                ?>
-                <div class="stok-badge <?= $stok_class ?>">
-                    <i class="fas fa-<?= ($book['stok'] > 0) ? 'check-circle' : 'exclamation-circle' ?>"></i>
+                    <!-- Qty -->
                     <?php if ($book['stok'] > 0): ?>
-                        <?= $stok_label ?> (<?= $book['stok'] ?> stok)
-                    <?php else: ?>
-                        <?= $stok_label ?>
+                    <div class="qty-row">
+                        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+                        <input class="qty-input" type="number" id="qtyInput" value="1" min="1" max="<?= $book['stok'] ?>" readonly />
+                        <button class="qty-btn" onclick="changeQty(1)">+</button>
+                    </div>
                     <?php endif; ?>
+
+                    <!-- Action Buttons -->
+                    <div class="action-row">
+                        <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>)"
+                                <?= ($book['stok'] <= 0) ? 'disabled' : '' ?>>
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Keranjang</span>
+                        </button>
+                        <button class="btn-wishlist <?= ($in_wishlist ?? false) ? 'active' : '' ?>" id="wishlistBtn" onclick="tambahWishlist(<?= $book['id_buku'] ?>)" title="Simpan ke Wishlist">
+                            <i class="<?= ($in_wishlist ?? false) ? 'fas' : 'far' ?> fa-heart"></i>
+                        </button>
+                    </div>
+
+                    <!-- Beli Sekarang -->
+                    <?php if ($book['stok'] > 0): ?>
+                    <button class="btn-buynow" onclick="beliSekarang(<?= $book['id_buku'] ?>)">
+                        Beli Sekarang
+                    </button>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Info Column -->
+                <div class="info-column">
+                    <?php if (!empty($book['nama_kategori'])): ?>
+                    <div class="category-badge">
+                        <i class="fas fa-tag" style="font-size:.7rem; margin-right:.3rem;"></i>
+                        <?= htmlspecialchars($book['nama_kategori']) ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <h1 class="book-title"><?= htmlspecialchars($book['judul']) ?></h1>
+
+                    <div class="book-author">
+                        oleh <strong><?= htmlspecialchars($book['penulis'] ?? '—') ?></strong>
+                    </div>
+
+                    <!-- Rating -->
+                    <div class="rating-row">
+                        <span class="rating-num"><?= $avg_rating ?: '—' ?></span>
+                        <div class="rating-stars-row"><?= starHtml($avg_rating, '0.9rem') ?></div>
+                        <span class="rating-reviews"><?= $review_count ?> ulasan</span>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Meta Info -->
+                    <div class="meta-grid">
+                        <?php if (!empty($book['penerbit'])): ?>
+                        <div class="meta-item">
+                            <span class="meta-label">Penerbit</span>
+                            <span class="meta-value"><?= htmlspecialchars($book['penerbit']) ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if (!empty($book['isbn'])): ?>
+                        <div class="meta-item">
+                            <span class="meta-label">ISBN</span>
+                            <span class="meta-value"><?= htmlspecialchars($book['isbn']) ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if (!empty($book['halaman'])): ?>
+                        <div class="meta-item">
+                            <span class="meta-label">Halaman</span>
+                            <span class="meta-value"><?= htmlspecialchars($book['halaman']) ?></span>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if (!empty($book['sinopsis'])): ?>
+                    <div class="divider"></div>
+                    <p class="deskripsi-text">
+                        <?= nl2br(htmlspecialchars($book['sinopsis'])) ?>
+                    </p>
+                    <?php endif; ?>
+
+                    <div class="divider"></div>
+
+                    <!-- Price & Stock -->
+                    <div class="price-row">
+                        <span class="price-main"><?= formatRupiah($book['harga']) ?></span>
+                        <?php
+                        $sc = ($book['stok'] > 10) ? 'tersedia' : (($book['stok'] > 0) ? 'terbatas' : 'habis');
+                        $sl = ($book['stok'] > 10) ? 'Tersedia' : (($book['stok'] > 0) ? 'Terbatas' : 'Stok Habis');
+                        $si = ($book['stok'] > 0) ? 'check-circle' : 'exclamation-circle';
+                        ?>
+                        <div class="stok-badge <?= $sc ?>">
+                            <i class="fas fa-<?= $si ?>"></i>
+                            <?= $sl ?>
+                            <?php if ($book['stok'] > 0): ?>(<?= $book['stok'] ?> stok)<?php endif; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Synopsis -->
-        <?php if (!empty($book['sinopsis'])): ?>
-        <div class="synopsis-section">
-            <div class="synopsis-title">Sinopsis</div>
-            <div class="synopsis-text"><?= nl2br(htmlspecialchars($book['sinopsis'])) ?></div>
-        </div>
-        <?php endif; ?>
 
-        <!-- Review Form -->
-        <div class="reviews-section">
-            <div class="reviews-title">Tambahkan Ulasan Anda</div>
-            
+
+        <!-- ── ULASAN ── -->
+        <div class="section-card">
+            <div class="section-title">Ulasan Pembaca</div>
+
+            <!-- Review Form -->
             <?php if ($user_id): ?>
-                <div class="review-form-container">
-                    <form id="reviewForm" onsubmit="submitReview(event, <?= $id_buku ?>)">
-                        <!-- Rating selector -->
-                        <div class="form-group">
-                            <label for="rating">Rating</label>
-                            <div class="star-selector" id="starSelector">
-                                <?php for ($i = 1; $i <= 5; $i++): ?>
-                                    <i class="far fa-star" data-value="<?= $i ?>" 
-                                       style="font-size:1.8rem; cursor:pointer; color:#d1d5db; transition:color .2s;"
-                                       onmouseover="this.style.color='#f59e0b'; hoverStars(<?= $i ?>)"
-                                       onmouseout="resetStars();"
-                                       onclick="selectStar(<?= $i ?>)"></i>
-                                <?php endfor; ?>
-                            </div>
-                            <input type="hidden" id="ratingValue" name="rating" value="0" required />
-                            <p id="ratingLabel" style="font-size:.85rem; color:var(--gray-500); margin-top:.5rem;">Pilih rating Anda</p>
-                        </div>
-
-                        <!-- Comment -->
-                        <div class="form-group">
-                            <label for="komentar">Komentar</label>
-                            <textarea id="komentar" name="komentar" placeholder="Bagikan pengalaman Anda membaca buku ini..." 
-                                      rows="5" maxlength="1000" required
-                                      style="width:100%; padding:1rem; border:1.5px solid var(--gray-200); border-radius:10px; font-family:'DM Sans',sans-serif; font-size:.9rem; resize:vertical; outline:none; transition:border-color .2s;"
-                                      onchange="updateCharCount()"
-                                      onkeyup="updateCharCount()"
-                                      onfocus="this.style.borderColor='var(--indigo-light)'; this.style.boxShadow='0 0 0 3px rgba(59,46,192,.10)'"
-                                      onblur="this.style.borderColor='var(--gray-200)'; this.style.boxShadow='none'"></textarea>
-                            <p style="font-size:.8rem; color:var(--gray-500); margin-top:.3rem;"><span id="charCount">0</span>/1000 karakter</p>
-                        </div>
-
-                        <div style="display:flex; gap:1rem;">
-                            <button type="submit" class="btn-primary" style="flex:1;">
-                                <i class="fas fa-paper-plane"></i> Kirim Ulasan
-                            </button>
-                            <button type="reset" class="btn-secondary" style="flex:1;">
-                                <i class="fas fa-times"></i> Batal
-                            </button>
-                        </div>
-                    </form>
-
-                    <?php if ($user_review): ?>
-                    <div style="margin-top:1.5rem; padding:1rem; background:var(--gray-100); border-left:3px solid var(--indigo-light); border-radius:8px;">
-                        <p style="font-size:.85rem; color:var(--gray-500); margin-bottom:.5rem;">
-                            <i class="fas fa-info-circle"></i> Anda sudah memberikan ulasan. Gunakan form di atas untuk mengubahnya.
-                        </p>
-                        <div style="display:flex; gap:.5rem; align-items:center; margin-top:.5rem;">
-                            <span style="color:var(--amber);"><?= starHtml($user_review['rating']) ?></span>
-                            <span style="color:var(--gray-500); font-size:.9rem;">Rating saat ini: <?= $user_review['rating'] ?>/5</span>
+            <?php if ($user_review): ?>
+                <!-- Already reviewed: show a simple note -->
+                <div style="display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; background:rgba(59,46,192,.05); border:1.5px solid var(--gray-200); border-radius:12px; margin-bottom:2rem;">
+                    <i class="fas fa-check-circle" style="color:var(--success); font-size:1.2rem; flex-shrink:0;"></i>
+                    <div>
+                        <div style="font-weight:700; font-size:.9rem; color:var(--gray-800);">Anda sudah memberikan ulasan</div>
+                        <div style="display:flex; align-items:center; gap:.4rem; margin-top:.25rem;">
+                            <?= starHtml($user_review['rating'], '0.82rem') ?>
+                            <span style="font-size:.82rem; color:var(--gray-500);"><?= $user_review['rating'] ?>/5</span>
                         </div>
                     </div>
-                    <?php endif; ?>
                 </div>
             <?php else: ?>
-                <div style="padding:2rem; background:var(--gray-100); border-radius:12px; text-align:center;">
-                    <i class="fas fa-sign-in-alt" style="font-size:2rem; color:var(--gray-200); margin-bottom:1rem; display:block;"></i>
-                    <p style="color:var(--gray-500); margin-bottom:1.5rem;">Silakan login untuk memberikan ulasan</p>
-                    <a href="../auth/login.php" class="btn-primary" style="display:inline-flex;">
-                        <i class="fas fa-sign-in-alt"></i> Masuk / Daftar
-                    </a>
+            <div class="review-form-box">
+                <div class="review-form-title">
+                    <i class="fas fa-pencil-alt" style="color:var(--indigo-light); margin-right:.4rem;"></i>
+                    Tulis Ulasan
                 </div>
+                <form id="reviewForm" onsubmit="submitReview(event, <?= $id_buku ?>)">
+                    <label class="form-label">Rating</label>
+                    <div class="star-selector" id="starSelector">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="far fa-star" data-value="<?= $i ?>"
+                               style="color:#d1d5db;"
+                               onmouseover="hoverStars(<?= $i ?>)"
+                               onmouseout="resetStars();"
+                               onclick="selectStar(<?= $i ?>)"></i>
+                        <?php endfor; ?>
+                    </div>
+                    <input type="hidden" id="ratingValue" name="rating" value="0" />
+                    <p id="ratingLabel" class="star-label">Pilih rating Anda</p>
+
+                    <label class="form-label" for="komentar">Komentar</label>
+                    <textarea id="komentar" name="komentar"
+                              class="review-textarea"
+                              placeholder="Bagikan pengalaman Anda membaca buku ini..."
+                              rows="4" maxlength="1000" required
+                              oninput="updateCharCount()"></textarea>
+                    <div class="char-count"><span id="charCount">0</span>/1000</div>
+
+                    <div class="review-form-actions">
+                        <button type="submit" class="btn-submit-review">
+                            <i class="fas fa-paper-plane"></i> Kirim Ulasan
+                        </button>
+                        <button type="reset" class="btn-reset-review" onclick="resetReviewForm()">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                    </div>
+                </form>
+            </div>
             <?php endif; ?>
-        </div>
 
-        <!-- Reviews -->
-        <div class="reviews-section">
-            <div class="reviews-title">Ulasan Pembaca</div>
+            <?php else: ?>
+            <div class="login-prompt">
+                <i class="fas fa-sign-in-alt"></i>
+                <p>Silakan masuk untuk memberikan ulasan</p>
+                <a href="../auth/login.php" class="btn-login-link">
+                    <i class="fas fa-sign-in-alt"></i> Masuk / Daftar
+                </a>
+            </div>
+            <?php endif; ?>
 
+            <!-- Review List -->
             <?php if (empty($reviews)): ?>
                 <div class="no-reviews">
-                    <i class="fas fa-comments" style="font-size:2rem; color:var(--gray-200); margin-bottom:1rem; display:block;"></i>
-                    <p>Belum ada ulasan untuk buku ini</p>
+                    <i class="fas fa-comment-dots"></i>
+                    <p>Belum ada ulasan untuk buku ini.<br><span style="font-size:.85rem;">Jadilah yang pertama memberikan ulasan!</span></p>
                 </div>
             <?php else: ?>
-                <?php foreach ($reviews as $review): ?>
-                <div class="review-item">
-                    <div class="review-header">
-                        <div>
-                            <div class="review-user"><?= htmlspecialchars($review['nama_depan'] . ' ' . $review['nama_belakang']) ?></div>
-                            <div class="review-date"><?= date('d M Y', strtotime($review['created_at'])) ?></div>
+                <div class="reviews-list">
+                    <?php foreach ($reviews as $rv): ?>
+                    <div class="review-item">
+                        <div class="review-top">
+                            <div class="reviewer-avatar">
+                                <?= strtoupper(mb_substr($rv['nama_depan'], 0, 1)) ?>
+                            </div>
+                            <div class="reviewer-info">
+                                <div class="reviewer-name"><?= htmlspecialchars($rv['nama_depan'] . ' ' . $rv['nama_belakang']) ?></div>
+                                <div class="reviewer-meta">
+                                    <div class="reviewer-stars"><?= starHtml($rv['rating'], '0.8rem') ?></div>
+                                    <span class="reviewer-date"><?= date('d M Y', strtotime($rv['created_at'])) ?></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="review-stars"><?= starHtml($review['rating']) ?></div>
+                        <div class="review-body"><?= nl2br(htmlspecialchars($rv['komentar'])) ?></div>
                     </div>
-                    <div class="review-text"><?= nl2br(htmlspecialchars($review['komentar'])) ?></div>
+                    <?php endforeach; ?>
                 </div>
-                <?php endforeach; ?>
             <?php endif; ?>
         </div>
+
     <?php endif; ?>
 </div>
 
 <!-- Toast -->
 <div id="toast">
-    <i class="fas fa-check-circle"></i>
+    <i class="fas fa-check-circle" id="toast-icon"></i>
     <span id="toast-msg">Berhasil!</span>
 </div>
 
-<style>
-    @media (min-width: 600px) {
-        .navbar-inner .logo-text { display: inline !important; }
-    }
-</style>
-
 <script>
+// ── TOAST ──
 function showToast(msg, ok = true) {
     const t = document.getElementById('toast');
+    const ic = document.getElementById('toast-icon');
     document.getElementById('toast-msg').textContent = msg;
     t.style.background = ok ? '#1db87d' : '#e03c3c';
-    t.style.transform = 'translateY(0)'; t.style.opacity = '1';
-    setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 2800);
+    ic.className = ok ? 'fas fa-check-circle' : 'fas fa-times-circle';
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Rating star functions
-function selectStar(value) {
-    document.getElementById('ratingValue').value = value;
-    updateStarDisplay(value);
-    document.getElementById('ratingLabel').textContent = 'Rating: ' + value + '/5 ⭐';
+// ── QTY ──
+function changeQty(delta) {
+    const inp = document.getElementById('qtyInput');
+    if (!inp) return;
+    const max = parseInt(inp.max) || 99;
+    let v = parseInt(inp.value) + delta;
+    if (v < 1) v = 1;
+    if (v > max) v = max;
+    inp.value = v;
 }
 
-function hoverStars(value) {
+// ── STARS ──
+let selectedRating = 0;
+
+function selectStar(val) {
+    selectedRating = val;
+    document.getElementById('ratingValue').value = val;
+    updateStarDisplay(val);
+    const labels = ['', 'Sangat Buruk', 'Buruk', 'Cukup', 'Bagus', 'Sangat Bagus'];
+    document.getElementById('ratingLabel').textContent = labels[val] + ' (' + val + '/5)';
+}
+
+function hoverStars(val) {
     const stars = document.querySelectorAll('#starSelector i');
-    stars.forEach((star, idx) => {
-        if (idx < value) {
-            star.classList.remove('far');
-            star.classList.add('fas');
-            star.style.color = '#f59e0b';
-        } else {
-            star.classList.remove('fas');
-            star.classList.add('far');
-            star.style.color = '#d1d5db';
-        }
+    stars.forEach((s, i) => {
+        if (i < val) { s.className = 'fas fa-star'; s.style.color = '#f59e0b'; }
+        else          { s.className = 'far fa-star'; s.style.color = '#d1d5db'; }
     });
 }
 
-function resetStars() {
-    const currentRating = parseInt(document.getElementById('ratingValue').value) || 0;
-    updateStarDisplay(currentRating);
-}
+function resetStars() { updateStarDisplay(selectedRating); }
 
 function updateStarDisplay(rating) {
     const stars = document.querySelectorAll('#starSelector i');
-    stars.forEach((star, idx) => {
-        if (idx < rating) {
-            star.classList.remove('far');
-            star.classList.add('fas');
-            star.style.color = '#f59e0b';
-        } else {
-            star.classList.remove('fas');
-            star.classList.add('far');
-            star.style.color = '#d1d5db';
-        }
+    stars.forEach((s, i) => {
+        if (i < rating) { s.className = 'fas fa-star'; s.style.color = '#f59e0b'; }
+        else             { s.className = 'far fa-star'; s.style.color = '#d1d5db'; }
     });
 }
 
 function updateCharCount() {
-    const textarea = document.getElementById('komentar');
-    document.getElementById('charCount').textContent = textarea.value.length;
+    const ta = document.getElementById('komentar');
+    if (ta) document.getElementById('charCount').textContent = ta.value.length;
 }
 
+function resetReviewForm() {
+    selectedRating = 0;
+    updateStarDisplay(0);
+    document.getElementById('ratingValue').value = 0;
+    document.getElementById('ratingLabel').textContent = 'Pilih rating Anda';
+    document.getElementById('charCount').textContent = '0';
+}
+
+
+
+// ── SUBMIT REVIEW ──
 function submitReview(event, idBuku) {
     event.preventDefault();
-    
     const rating = parseInt(document.getElementById('ratingValue').value);
     const komentar = document.getElementById('komentar').value.trim();
-    
-    if (rating === 0) {
-        showToast('Pilih rating terlebih dahulu', false);
-        return;
-    }
-    
-    if (!komentar) {
-        showToast('Komentar tidak boleh kosong', false);
-        return;
-    }
-    
-    const btn = event.target.querySelector('button[type="submit"]');
+    if (rating === 0) { showToast('Pilih rating terlebih dahulu', false); return; }
+    if (!komentar)    { showToast('Komentar tidak boleh kosong', false); return; }
+    const btn = event.target.querySelector('.btn-submit-review');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
-    
     fetch('/literaspace/api/review.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            id_buku: idBuku,
-            rating: rating,
-            komentar: komentar
-        })
+        body: JSON.stringify({ id_buku: idBuku, rating, komentar })
     })
     .then(r => r.json())
     .then(d => {
-        if (d.success) {
-            showToast(d.message);
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
-        } else {
-            showToast(d.message || 'Gagal mengirim review', false);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Ulasan';
-        }
+        if (d.success) { showToast(d.message); setTimeout(() => location.reload(), 1200); }
+        else { showToast(d.message || 'Gagal mengirim ulasan', false); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Ulasan'; }
     })
-    .catch((err) => {
-        showToast('Terjadi kesalahan', false);
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Ulasan';
-    });
+    .catch(() => { showToast('Terjadi kesalahan', false); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Ulasan'; });
 }
 
-// Load existing rating on page load
-window.addEventListener('DOMContentLoaded', function() {
-    const existingRating = <?= $user_review ? $user_review['rating'] : 0 ?>;
-    if (existingRating > 0) {
-        updateStarDisplay(existingRating);
-        document.getElementById('ratingLabel').textContent = 'Rating: ' + existingRating + '/5 ⭐';
-    }
-});
-
+// ── KERANJANG ──
 function tambahKeranjang(idBuku) {
     <?php if (!$user_id): ?>
-        window.location.href = '../auth/login.php'; return;
+    window.location.href = '../auth/login.php'; return;
     <?php endif; ?>
-    
-    const btn = event.target.closest('.btn-primary');
+    const qty = parseInt(document.getElementById('qtyInput')?.value || 1);
+    const btn = document.querySelector('.btn-cart');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     fetch('/literaspace/api/keranjang.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_buku: idBuku, qty: 1 })
+        body: JSON.stringify({ id_buku: idBuku, qty })
     })
     .then(r => r.json())
     .then(d => {
         if (d.success) {
-            showToast('Buku ditambahkan ke keranjang!');
-            setTimeout(() => {
-                btn.innerHTML = '<i class="fas fa-check"></i> Ditambahkan';
-                btn.disabled = true;
-            }, 500);
+            showToast('Ditambahkan ke keranjang!');
+            btn.innerHTML = '<i class="fas fa-check"></i> Ditambahkan';
+            setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Keranjang'; }, 2000);
         } else {
-            showToast(d.message || 'Gagal menambahkan.', false);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-cart-plus"></i> Tambah ke Keranjang';
+            showToast(d.message || 'Gagal', false);
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Keranjang';
         }
     })
-    .catch(() => {
-        showToast('Terjadi kesalahan.', false);
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-cart-plus"></i> Tambah ke Keranjang';
-    });
+    .catch(() => { showToast('Terjadi kesalahan', false); btn.disabled = false; btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Keranjang'; });
 }
 
+// ── BELI SEKARANG ──
+function beliSekarang(idBuku) {
+    <?php if (!$user_id): ?>
+    window.location.href = '../auth/login.php'; return;
+    <?php endif; ?>
+    const qty = parseInt(document.getElementById('qtyInput')?.value || 1);
+    fetch('/literaspace/api/keranjang.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_buku: idBuku, qty })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) window.location.href = 'keranjang.php';
+        else showToast(d.message || 'Gagal', false);
+    })
+    .catch(() => showToast('Terjadi kesalahan', false));
+}
+
+// ── WISHLIST ──
 function tambahWishlist(idBuku) {
     <?php if (!$user_id): ?>
-        window.location.href = '../auth/login.php'; return;
+    window.location.href = '../auth/login.php'; return;
     <?php endif; ?>
-    
-    const btn = event.target.closest('.btn-secondary');
+    const btn = document.getElementById('wishlistBtn');
+    const isActive = btn.classList.contains('active');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-    
     fetch('/literaspace/api/wishlist.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -885,23 +1129,23 @@ function tambahWishlist(idBuku) {
     })
     .then(r => r.json())
     .then(d => {
+        btn.disabled = false;
         if (d.success) {
-            showToast('Disimpan ke wishlist!');
-            btn.innerHTML = '<i class="fas fa-heart"></i> Tersimpan';
-            btn.disabled = true;
+            if (isActive) {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="far fa-heart"></i>';
+                showToast('Dihapus dari wishlist');
+            } else {
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-heart"></i>';
+                showToast('Disimpan ke wishlist!');
+            }
         } else {
-            showToast(d.message || 'Gagal.', false);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="far fa-heart"></i> Simpan ke Wishlist';
+            showToast(d.message || 'Gagal', false);
         }
     })
-    .catch(() => {
-        showToast('Terjadi kesalahan.', false);
-        btn.disabled = false;
-        btn.innerHTML = '<i class="far fa-heart"></i> Simpan ke Wishlist';
-    });
+    .catch(() => { btn.disabled = false; showToast('Terjadi kesalahan', false); });
 }
 </script>
-
 </body>
 </html>

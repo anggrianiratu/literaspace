@@ -56,6 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $ins->execute([$user_id, $id_buku]);
                 }
             }
+
+            $del = $pdo->prepare("DELETE FROM wishlist WHERE id_user = ?");
+            $del->execute([$user_id]);
+            
             header('Location: wishlist.php?msg=moved');
             exit;
         }
@@ -478,8 +482,10 @@ function starHtml($rating) {
                     <i class="fas fa-shopping-cart"></i>
                     <?php if ($cart_count > 0): ?><span class="nav-badge"><?= min($cart_count,99) ?></span><?php endif; ?>
                 </a>
-                <a href="/wishlist.php" class="nav-icon" style="color:var(--error);">
-                    <i class="fas fa-heart"></i>
+
+                <!-- DIUBAH: hapus style color merah + ganti fas fa-heart → far fa-heart (outline/clear) -->
+                <a href="/wishlist.php" class="nav-icon">
+                    <i class="far fa-heart"></i>
                     <?php if ($wishlist_count > 0): ?><span class="nav-badge"><?= min($wishlist_count,99) ?></span><?php endif; ?>
                 </a>
 

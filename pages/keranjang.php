@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/db.php';
 $user_id    = $_SESSION['user_id'] ?? null;
 $cart_count = 0;
 $cart_items = [];
+$wishlist_count = 0;
 
 function formatRupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
 
@@ -13,7 +14,6 @@ try {
     $pdo = getDB();
     
     if ($user_id) {
-        // Query untuk mendapatkan items di keranjang + detail buku
         $stmt = $pdo->prepare("
             SELECT 
                 k.id_keranjang,
@@ -34,6 +34,11 @@ try {
         $stmt->execute([$user_id]);
         $cart_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $cart_count = count($cart_items);
+
+        // Ambil jumlah wishlist
+        $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE id_user = ?");
+        $stmt2->execute([$user_id]);
+        $wishlist_count = (int)$stmt2->fetchColumn();
     }
 } catch (PDOException $e) {
     error_log("Error loading cart: " . $e->getMessage());
@@ -122,7 +127,14 @@ try {
         .qty-btn { width: 28px; height: 28px; border: none; background: var(--white); border-radius: 6px; cursor: pointer; font-size: .88rem; font-weight: 700; color: var(--gray-800); transition: background .15s, color .15s; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
         .qty-btn:hover { background: var(--indigo-deep); color: var(--white); }
         .qty-val { font-size: .9rem; font-weight: 600; min-width: 24px; text-align: center; color: var(--gray-800); }
-        .btn-delete { width: 28px; height: 28px; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: .82rem; display: flex; align-items: center; justify-content: center; transition: color .2s; padding: 0; }
+
+        /* FIX: Hapus pointer-events:none agar tombol hapus bisa diklik */
+        .btn-delete {
+            width: 28px; height: 28px; background: none; border: none;
+            cursor: pointer; color: var(--gray-500); font-size: .82rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: color .2s; padding: 0;
+        }
         .btn-delete:hover { color: var(--error); }
 
         .summary-panel { background: var(--white); border: 1.5px solid var(--gray-200); border-radius: var(--radius); padding: 1.4rem; box-shadow: var(--shadow); position: sticky; top: 90px; }
@@ -163,15 +175,25 @@ try {
             </a>
             <div style="flex:1;"></div>
             <div style="display:flex; align-items:center; gap:1.1rem; flex-shrink:0;">
-                <a href="/keranjang.php" class="nav-icon" style="color:var(--indigo-light);">
+
+                <!-- Cart Icon -->
+                <a href="/literaspace/pages/keranjang.php" class="nav-icon" style="color:var(--indigo-light);">
                     <i class="fas fa-shopping-cart"></i>
                     <?php if ($cart_count > 0): ?>
                         <span class="nav-badge"><?= min($cart_count, 99) ?></span>
                     <?php endif; ?>
                 </a>
-                <a href="/literaspace/pages/wishlist.php" class="nav-icon" onmouseover="this.style.color='#e03c3c'" onmouseout="this.style.color='var(--gray-500)'">
+
+                <!-- FIX: Wishlist Icon dengan badge -->
+                <a href="/literaspace/pages/wishlist.php" class="nav-icon"
+                   onmouseover="this.style.color='#e03c3c'"
+                   onmouseout="this.style.color='var(--gray-500)'">
                     <i class="far fa-heart"></i>
+                    <?php if ($wishlist_count > 0): ?>
+                        <span class="nav-badge" style="background:var(--error);"><?= min($wishlist_count, 99) ?></span>
+                    <?php endif; ?>
                 </a>
+
                 <?php if ($user_id): ?>
                     <div class="dropdown-wrap">
                         <button style="background:none;border:none;cursor:pointer;" class="nav-icon">
@@ -195,7 +217,7 @@ try {
 <main class="page-inner">
     <div style="margin-bottom:1.6rem;">
         <h1 class="page-title">Keranjang Belanja</h1>
-        <p class="page-subtitle"><?= count($cart_items) ?> item di keranjang</p>
+        <p class="page-subtitle" id="cart-count-label"><?= count($cart_items) ?> item di keranjang</p>
     </div>
 
     <?php if (empty($cart_items)): ?>
@@ -211,7 +233,7 @@ try {
     <?php else: ?>
         <div class="cart-layout">
             <div>
-                <div class="cart-panel">
+                <div class="cart-panel" id="cart-panel">
                     <div class="select-all-bar">
                         <label class="select-all-label">
                             <input type="checkbox" id="check-all" />
@@ -250,7 +272,8 @@ try {
                                     <span class="qty-val"><?= $item['qty'] ?></span>
                                     <button class="qty-btn btn-plus" data-stok="<?= $item['stok'] ?>">+</button>
                                 </div>
-                                <button class="btn-delete btn-hapus-item" title="Hapus item">
+                                <!-- FIX: pointer-events sudah dihapus dari CSS, tombol ini sekarang bisa diklik -->
+                                <button class="btn-delete" data-id="<?= $item['id_buku'] ?>" title="Hapus item">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -283,6 +306,7 @@ try {
     <?php endif; ?>
 </main>
 
+<!-- Modal Konfirmasi Hapus -->
 <div class="modal-overlay" id="hapus-modal">
     <div class="modal-box">
         <div style="width:48px;height:48px;background:#fdecea;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;">
@@ -304,6 +328,8 @@ try {
 
 <script>
 (function () {
+    const API_URL = '/literaspace/pages/hapus_keranjang.php';
+
     const checkAll      = document.getElementById('check-all');
     const btnHapusSemua = document.getElementById('btn-hapus-semua');
     const modal         = document.getElementById('hapus-modal');
@@ -316,6 +342,7 @@ try {
 
     let pendingAction = null;
 
+    // ── Toast notifikasi ────────────────────────────────────────────
     function showToast(msg, ok = true) {
         toastMsg.textContent       = msg;
         toast.style.background     = ok ? '#1db87d' : '#e03c3c';
@@ -328,18 +355,19 @@ try {
         }, 2800);
     }
 
+    // ── Modal konfirmasi ────────────────────────────────────────────
     function openModal(title, desc, action) {
         modalTitle.textContent = title;
         modalDesc.textContent  = desc;
         pendingAction          = action;
         modal.classList.add('show');
     }
-
     function closeModal() {
         modal.classList.remove('show');
         pendingAction = null;
     }
 
+    // ── Animasi hilang baris item ───────────────────────────────────
     function animateRemove(row, cb) {
         row.style.transition = 'opacity .28s, max-height .28s, padding .28s, margin .28s';
         row.style.overflow   = 'hidden';
@@ -353,6 +381,25 @@ try {
         setTimeout(() => { row.remove(); if (cb) cb(); }, 300);
     }
 
+    // ── Update label jumlah item di subtitle ───────────────────────
+    function updateCartLabel() {
+        const remaining = document.querySelectorAll('.cart-item').length;
+        const label     = document.getElementById('cart-count-label');
+        if (label) label.textContent = remaining + ' item di keranjang';
+    }
+
+    // ── Kirim request hapus ke server ──────────────────────────────
+    async function apiHapus(payload) {
+        const res = await fetch(API_URL, {
+            method:      'POST',
+            headers:     { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body:        JSON.stringify(payload)
+        });
+        return res.json();
+    }
+
+    // ── Hitung & tampilkan ringkasan belanja ───────────────────────
     function updateSummary() {
         const checks  = Array.from(document.querySelectorAll('.item-check'));
         const total   = checks.length;
@@ -383,7 +430,7 @@ try {
         document.getElementById('btn-checkout').disabled          = checked.length === 0;
     }
 
-    /* checkbox Semua */
+    // ── Checkbox "Semua" ───────────────────────────────────────────
     if (checkAll) {
         checkAll.addEventListener('change', function () {
             document.querySelectorAll('.item-check').forEach(c => c.checked = this.checked);
@@ -391,16 +438,42 @@ try {
         });
     }
 
-    /* event delegation untuk semua klik di dalam cart-panel */
+    // ── Event delegation untuk semua klik di document ──────────────
     document.addEventListener('click', function (e) {
 
-        /* checkbox per-item */
+        // FIX: Tombol hapus per-item — pakai event delegation agar andal
+        const delBtn = e.target.closest('.btn-delete');
+        if (delBtn) {
+            const row    = delBtn.closest('.cart-item');
+            const idBuku = parseInt(delBtn.dataset.id, 10);
+
+            openModal(
+                'Hapus Produk',
+                'Produk yang dihapus akan hilang dari keranjang. Lanjutkan?',
+                async function () {
+                    try {
+                        const result = await apiHapus({ action: 'hapus_item', id_buku: idBuku });
+                        if (result.success) {
+                            animateRemove(row, () => { updateSummary(); updateCartLabel(); });
+                            showToast('Item berhasil dihapus dari keranjang.');
+                        } else {
+                            showToast(result.message || 'Gagal menghapus item.', false);
+                        }
+                    } catch (err) {
+                        showToast('Terjadi kesalahan, coba lagi.', false);
+                    }
+                }
+            );
+            return;
+        }
+
+        // Checkbox per-item
         if (e.target.classList.contains('item-check')) {
             updateSummary();
             return;
         }
 
-        /* tombol minus */
+        // Tombol minus qty
         if (e.target.closest('.btn-minus')) {
             const btn   = e.target.closest('.btn-minus');
             const valEl = btn.closest('.qty-wrap').querySelector('.qty-val');
@@ -411,7 +484,7 @@ try {
             return;
         }
 
-        /* tombol plus */
+        // Tombol plus qty
         if (e.target.closest('.btn-plus')) {
             const btn   = e.target.closest('.btn-plus');
             const valEl = btn.closest('.qty-wrap').querySelector('.qty-val');
@@ -422,50 +495,47 @@ try {
             updateSummary();
             return;
         }
-
-        /* tombol hapus per-item */
-        if (e.target.closest('.btn-hapus-item')) {
-            const row = e.target.closest('.cart-item');
-            openModal(
-                'Hapus Produk',
-                'Produk yang dihapus akan hilang dari keranjang.',
-                function () {
-                    animateRemove(row, updateSummary);
-                    showToast('Item dihapus dari keranjang.');
-                }
-            );
-            return;
-        }
     });
 
-    /* tombol Hapus semua */
+    // ── Tombol "Hapus Semua" ───────────────────────────────────────
     if (btnHapusSemua) {
         btnHapusSemua.addEventListener('click', function () {
             const rows = document.querySelectorAll('.cart-item');
             if (!rows.length) return;
+
             openModal(
                 'Hapus Semua Produk',
-                'Semua produk di keranjang akan dihapus.',
-                function () {
-                    rows.forEach(r => animateRemove(r, null));
-                    setTimeout(updateSummary, 320);
-                    showToast('Semua item dihapus dari keranjang.');
+                'Semua produk di keranjang akan dihapus. Lanjutkan?',
+                async function () {
+                    try {
+                        const result = await apiHapus({ action: 'hapus_semua' });
+                        if (result.success) {
+                            rows.forEach(r => animateRemove(r, null));
+                            setTimeout(() => { updateSummary(); updateCartLabel(); }, 320);
+                            showToast('Semua item berhasil dihapus dari keranjang.');
+                        } else {
+                            showToast(result.message || 'Gagal menghapus semua item.', false);
+                        }
+                    } catch (err) {
+                        showToast('Terjadi kesalahan, coba lagi.', false);
+                    }
                 }
             );
         });
     }
 
-    /* tombol modal */
+    // ── Tombol modal: Batal & Hapus ────────────────────────────────
     if (modalBatal) modalBatal.addEventListener('click', closeModal);
     if (modalHapus) modalHapus.addEventListener('click', function () {
+        const action = pendingAction;
         closeModal();
-        if (pendingAction) pendingAction();
+        if (action) action();
     });
     if (modal) modal.addEventListener('click', function (e) {
         if (e.target === modal) closeModal();
     });
 
-    /* tombol checkout */
+    // ── Tombol Checkout ────────────────────────────────────────────
     const btnCheckout = document.getElementById('btn-checkout');
     if (btnCheckout) {
         btnCheckout.addEventListener('click', function () {
@@ -474,16 +544,12 @@ try {
                 showToast('Pilih minimal 1 item', false);
                 return;
             }
-
-            // Collect selected items
             const items = checks.map(c => {
-                const row = c.closest('.cart-item');
-                const qty = parseInt(row.querySelector('.qty-val').textContent, 10);
+                const row    = c.closest('.cart-item');
+                const qty    = parseInt(row.querySelector('.qty-val').textContent, 10);
                 const idBuku = parseInt(row.dataset.id, 10);
                 return { id_buku: idBuku, qty: qty };
             });
-
-            // Save to sessionStorage and redirect
             sessionStorage.setItem('checkout_items', JSON.stringify(items));
             window.location.href = '/literaspace/pages/checkout.php';
         });

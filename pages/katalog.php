@@ -115,7 +115,6 @@ function buildUrl($overrides = []) {
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* ── Design tokens (sesuai login.php) ── */
         :root {
             --indigo-deep:  #1e1667;
             --indigo-mid:   #2d2a8f;
@@ -209,7 +208,6 @@ function buildUrl($overrides = []) {
         }
         .btn-auth:hover { background: var(--indigo-light); }
 
-        /* Dropdown */
         .dropdown-wrap { position: relative; }
         .dropdown-menu {
             position: absolute; right: 0; top: calc(100% + 8px);
@@ -322,7 +320,6 @@ function buildUrl($overrides = []) {
         }
         .cover-placeholder svg { width: 36px; height: 36px; fill: rgba(255,255,255,.4); }
 
-        /* Category badge */
         .cat-badge {
             position: absolute; top: 6px; left: 6px;
             background: rgba(255,255,255,.92);
@@ -332,7 +329,6 @@ function buildUrl($overrides = []) {
             letter-spacing: .03em;
         }
 
-        /* Stok habis */
         .sold-out-overlay {
             position: absolute; inset: 0;
             background: rgba(0,0,0,.5);
@@ -358,16 +354,17 @@ function buildUrl($overrides = []) {
 
         .book-price { font-size: .9rem; font-weight: 700; color: var(--indigo-deep); }
 
+        /* ── Cart button: icon only, no box ── */
         .btn-cart {
             width: 32px; height: 32px;
-            background: var(--indigo-deep); color: var(--white);
-            border: none; border-radius: 8px;
+            background: transparent; color: var(--indigo-deep);
+            border: none;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: .75rem;
-            transition: background .2s;
+            cursor: pointer; font-size: .95rem;
+            transition: color .2s, transform .15s;
         }
-        .btn-cart:hover    { background: var(--indigo-light); }
-        .btn-cart:disabled { background: var(--gray-200); color: var(--gray-500); cursor: not-allowed; }
+        .btn-cart:hover    { color: var(--indigo-light); transform: scale(1.2); }
+        .btn-cart:disabled { color: var(--gray-200); cursor: not-allowed; transform: none; }
 
         /* Empty state */
         .empty-state {
@@ -416,14 +413,12 @@ function buildUrl($overrides = []) {
             transition: all .3s; pointer-events: none;
         }
 
-        /* Grid */
         .books-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
             gap: .9rem;
         }
 
-        /* Layout main */
         .content-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
 
         @media (max-width: 760px) {
@@ -434,14 +429,10 @@ function buildUrl($overrides = []) {
 </head>
 <body>
 
-<!-- ════════════════════════════════
-     NAVBAR
-════════════════════════════════ -->
 <nav class="navbar">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
         <div style="display:flex; align-items:center; justify-content:space-between; height:68px; gap:1rem;">
 
-            <!-- Logo -->
             <a href="/literaspace/index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
                 <div class="logo-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
@@ -449,7 +440,6 @@ function buildUrl($overrides = []) {
                 <span class="logo-text" style="display:none;" id="logo-text-desktop">LiteraSpace</span>
             </a>
 
-            <!-- Search -->
             <div class="search-wrap">
                 <form action="katalog.php" method="GET">
                     <?php if ($id_kategori): ?><input type="hidden" name="kategori" value="<?= $id_kategori ?>"><?php endif; ?>
@@ -461,7 +451,6 @@ function buildUrl($overrides = []) {
                 </form>
             </div>
 
-            <!-- Right icons -->
             <div style="display:flex; align-items:center; gap:1.1rem; flex-shrink:0;">
                 <a href="/literaspace/pages/keranjang.php" class="nav-icon">
                     <i class="fas fa-shopping-cart"></i>
@@ -492,9 +481,6 @@ function buildUrl($overrides = []) {
     </div>
 </nav>
 
-<!-- ════════════════════════════════
-     PAGE CONTENT
-════════════════════════════════ -->
 <main class="page-inner">
 
     <?php if ($error): ?>
@@ -503,7 +489,6 @@ function buildUrl($overrides = []) {
         </div>
     <?php endif; ?>
 
-    <!-- Page title -->
     <div style="margin-bottom:1.4rem;">
         <h1 class="page-title">
             <?php if ($search): ?>
@@ -527,7 +512,6 @@ function buildUrl($overrides = []) {
 
     <div class="content-layout">
 
-        <!-- ── SIDEBAR FILTER ── -->
         <aside class="sidebar">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem;">
                 <span class="sidebar-title">
@@ -542,7 +526,6 @@ function buildUrl($overrides = []) {
                 <?php if ($search): ?><input type="hidden" name="q" value="<?= htmlspecialchars($search) ?>"><?php endif; ?>
                 <?php if ($sort !== 'terbaru'): ?><input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>"><?php endif; ?>
 
-                <!-- Genre -->
                 <div style="margin-bottom:1.1rem;">
                     <p class="filter-section-label">Genre</p>
                     <div style="display:flex; flex-direction:column; max-height:180px; overflow-y:auto; padding-right:.2rem;">
@@ -557,7 +540,6 @@ function buildUrl($overrides = []) {
                     </div>
                 </div>
 
-                <!-- Rentang Harga -->
                 <div style="margin-bottom:1rem;">
                     <p class="filter-section-label">Rentang Harga</p>
                     <?php
@@ -586,10 +568,8 @@ function buildUrl($overrides = []) {
             </form>
         </aside>
 
-        <!-- ── MAIN CONTENT ── -->
         <section style="flex:1; min-width:0;">
 
-            <!-- Toolbar -->
             <div class="toolbar">
                 <p class="sort-label">
                     <span style="font-weight:600; color:var(--gray-800);"><?= number_format($total_books) ?></span> buku ditemukan
@@ -615,7 +595,6 @@ function buildUrl($overrides = []) {
                 </div>
             </div>
 
-            <!-- Grid buku -->
             <?php if (empty($books)): ?>
                 <div class="empty-state">
                     <i class="fas fa-book-open empty-icon"></i>
@@ -697,7 +676,6 @@ function buildUrl($overrides = []) {
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Pagination -->
                 <?php if ($total_pages > 1): ?>
                     <nav class="pagination">
                         <?php if ($page > 1): ?>
@@ -734,7 +712,6 @@ function buildUrl($overrides = []) {
     </div>
 </main>
 
-<!-- Toast -->
 <div id="toast">
     <i class="fas fa-check-circle"></i>
     <span id="toast-msg">Buku ditambahkan ke keranjang!</span>
@@ -760,7 +737,7 @@ function tambahKeranjang(idBuku, btn) {
         window.location.href = '/auth/login.php'; return;
     <?php endif; ?>
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:.75rem;"></i>';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:.8rem;"></i>';
     fetch('/literaspace/api/keranjang.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -770,7 +747,7 @@ function tambahKeranjang(idBuku, btn) {
     .then(d => {
         if (d.success) {
             showToast('Buku ditambahkan ke keranjang!');
-            btn.innerHTML = '<i class="fas fa-check" style="font-size:.75rem;"></i>';
+            btn.innerHTML = '<i class="fas fa-check" style="font-size:.8rem;color:var(--success);"></i>';
             setTimeout(() => { btn.innerHTML = '<i class="fas fa-cart-plus"></i>'; btn.disabled = false; }, 2000);
         } else {
             showToast(d.message || 'Gagal menambahkan.', false);
