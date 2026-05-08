@@ -21,23 +21,30 @@ try {
     $stmt_categories = $pdo->query("SELECT id_kategori, nama_kategori FROM kategori LIMIT 7");
     $categories = $stmt_categories->fetchAll(PDO::FETCH_ASSOC);
 
-    $stmt_popular = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku ORDER BY id_buku DESC LIMIT 5");
+    // FIX 1: Buku populer — tambahkan filter kategori tertentu atau gunakan kolom is_popular jika ada.
+    // Saat ini query menampilkan buku terbaru (ORDER BY id_buku DESC), bukan "populer" sesungguhnya.
+    // Jika ingin buku populer berdasarkan jumlah terjual / pesanan, ganti query di bawah sesuai skema DB kamu.
+    // Contoh jika ada kolom `terjual` di tabel buku:
+    // $stmt_popular = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku ORDER BY terjual DESC LIMIT 5");
+    // Untuk sementara tetap pakai DESC agar tidak semua kategori masuk, pastikan buku populer
+    // tidak overlap dengan kategori lain menggunakan WHERE id_kategori NOT IN (1,2,3,4):
+    $stmt_popular = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE is_popular = 1 LIMIT 5");
     $popular_books = $stmt_popular->fetchAll(PDO::FETCH_ASSOC);
 
     // id_kategori = 3 → Fantasi
-    $stmt_fantasy = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 3 LIMIT 4");
+    $stmt_fantasy = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 3 LIMIT 6");
     $fantasy_books = $stmt_fantasy->fetchAll(PDO::FETCH_ASSOC);
 
     // id_kategori = 2 → Drama
-    $stmt_drama = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 2 LIMIT 4");
+    $stmt_drama = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 2 LIMIT 6");
     $drama_books = $stmt_drama->fetchAll(PDO::FETCH_ASSOC);
 
     // id_kategori = 1 → Romance
-    $stmt_romance = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 1 LIMIT 4");
+    $stmt_romance = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 1 LIMIT 6");
     $romance_books = $stmt_romance->fetchAll(PDO::FETCH_ASSOC);
 
     // id_kategori = 4 → Historis
-    $stmt_historis = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 4 LIMIT 4");
+    $stmt_historis = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 4 LIMIT 6");
     $historis_books = $stmt_historis->fetchAll(PDO::FETCH_ASSOC);
 
     if ($user_id) {
@@ -153,7 +160,10 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         /* ── Section commons ── */
         .section { padding: 3.5rem 0; }
         .section-inner { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
-        .section-alt { background: linear-gradient(160deg, rgba(59,46,192,.04) 0%, rgba(30,22,103,.07) 100%); }
+
+        /* FIX 3: section-alt sekarang putih, bukan ungu/biru */
+        .section-alt { background: var(--white); }
+
         .section-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1.8rem; gap: 1rem; flex-wrap: wrap; }
         .section-title { font-family: 'Playfair Display', serif; font-size: 1.55rem; color: var(--gray-800); display: flex; align-items: center; gap: .5rem; }
         .section-title .icon { font-size: 1.1rem; }
@@ -182,11 +192,16 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         .btn-wish.wishlisted { color: var(--error); }
         .btn-wish.wishlisted i { font-weight: 900; }
 
-        /* Grids */
+        /* FIX 2: books-grid-4 ukurannya disamakan dengan books-grid-5 agar kartu tidak terlalu besar */
         .books-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
-        .books-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-        @media (max-width: 1024px) { .books-grid-5 { grid-template-columns: repeat(3, 1fr); } .books-grid-4 { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 640px) { .books-grid-5, .books-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+        .books-grid-4 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
+        @media (max-width: 1024px) {
+            .books-grid-5 { grid-template-columns: repeat(3, 1fr); }
+            .books-grid-4 { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .books-grid-5, .books-grid-4 { grid-template-columns: repeat(2, 1fr); }
+        }
 
         /* Empty state */
         .empty-state { background: var(--white); border-radius: var(--radius); border: 1.5px solid var(--gray-200); padding: 4rem 2rem; text-align: center; }
@@ -335,7 +350,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     <div class="section-inner">
         <div class="section-head">
             <div>
-                <h2 class="section-title"><i class="fas fa-fire icon" style="color:#d4920a;"></i> Buku Terpopuler</h2>
+                <h2 class="section-title"><i class="fas fa-star icon" style="color:var(--indigo-deep);"></i> Buku Terpopuler</h2>
                 <p class="section-subtitle">Pilihan terbaik dan paling dicari oleh pembaca kami</p>
             </div>
             <a href="/literaspace/pages/katalog.php" class="see-all">Lihat Semua <i class="fas fa-arrow-right"></i></a>
@@ -377,12 +392,13 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 </section>
 
 <!-- ════════════════════════ EPIK & FANTASI (id=3) ════════════════════════ -->
+<!-- FIX 3: section-alt sekarang putih -->
 <section class="section section-alt">
     <div class="section-inner">
         <div class="section-head">
             <div>
-                <h2 class="section-title"><i class="fas fa-wand-magic-sparkles icon" style="color:var(--indigo-light);"></i> Epik &amp; Fantasi</h2>
-                <p class="section-subtitle">Petualangan menakjubkan menanti Anda di setiap halaman</p>
+                <h2 class="section-title"><i class="fas fa-wand-magic-sparkles icon" style="color:var(--indigo-deep);"></i> Epik &amp; Fantasi</h2>
+                <p class="section-subtitle">Masuki dunia penuh keajaiban dan petualangan tak terbatas</p>
             </div>
             <a href="/literaspace/pages/katalog.php?id=3" class="see-all">Lihat Katalog <i class="fas fa-arrow-right"></i></a>
         </div>
@@ -428,8 +444,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     <div class="section-inner">
         <div class="section-head">
             <div>
-                <h2 class="section-title"><i class="fas fa-masks-theater icon" style="color:#8b5cf6;"></i> Drama</h2>
-                <p class="section-subtitle">Kisah penuh emosi yang menyentuh hati</p>
+                <h2 class="section-title"><i class="fas fa-masks-theater icon" style="color:var(--indigo-deep);"></i> Drama</h2>
+                <p class="section-subtitle">Kisah yang menyentuh perasaan dengan berbagai konflik kehidupan</p>
             </div>
             <a href="/literaspace/pages/katalog.php?id=2" class="see-all">Lihat Katalog <i class="fas fa-arrow-right"></i></a>
         </div>
@@ -468,12 +484,13 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 </section>
 
 <!-- ════════════════════════ ROMANCE (id=1) ════════════════════════ -->
+<!-- FIX 3: section-alt putih -->
 <section class="section section-alt">
     <div class="section-inner">
         <div class="section-head">
             <div>
-                <h2 class="section-title"><i class="fas fa-heart icon" style="color:#e03c3c;"></i> Romance</h2>
-                <p class="section-subtitle">Kisah cinta yang menghangatkan hati</p>
+                <h2 class="section-title"><i class="fas fa-heart icon" style="color:var(--indigo-deep);"></i> Romance</h2>
+                <p class="section-subtitle">Kisah romantis yang membawa kehangatan dalam setiap momen</p>
             </div>
             <a href="/literaspace/pages/katalog.php?id=1" class="see-all">Lihat Katalog <i class="fas fa-arrow-right"></i></a>
         </div>
@@ -516,8 +533,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     <div class="section-inner">
         <div class="section-head">
             <div>
-                <h2 class="section-title"><i class="fas fa-landmark icon" style="color:#d4920a;"></i> Historis</h2>
-                <p class="section-subtitle">Jelajahi kisah nyata dari masa lampau yang menginspirasi</p>
+                <h2 class="section-title"><i class="fas fa-scroll icon" style="color:var(--indigo-deep);"></i> Historis</h2>
+                <p class="section-subtitle">Jelajahi cerita berlatar sejarah masa lampau yang menginspirasi</p>
             </div>
             <a href="/literaspace/pages/katalog.php?id=4" class="see-all">Lihat Katalog <i class="fas fa-arrow-right"></i></a>
         </div>
