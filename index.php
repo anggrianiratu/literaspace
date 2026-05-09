@@ -353,7 +353,6 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                 <h2 class="section-title"><i class="fas fa-star icon" style="color:var(--indigo-deep);"></i> Buku Terpopuler</h2>
                 <p class="section-subtitle">Pilihan terbaik dan paling dicari oleh pembaca kami</p>
             </div>
-            <a href="/literaspace/pages/katalog.php" class="see-all">Lihat Semua <i class="fas fa-arrow-right"></i></a>
         </div>
         <?php if (!empty($popular_books)): ?>
             <?php $cover_gradients = ['linear-gradient(135deg,#1e1667,#3b2ec0)','linear-gradient(135deg,#0f4c75,#1b6ca8)','linear-gradient(135deg,#2d6a4f,#52b788)','linear-gradient(135deg,#7b2d8b,#c77dff)','linear-gradient(135deg,#b5451b,#e76f51)']; ?>

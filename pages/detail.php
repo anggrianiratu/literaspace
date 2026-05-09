@@ -1100,7 +1100,9 @@ function beliSekarang(idBuku) {
     <?php if (!$user_id): ?>
     window.location.href = '../auth/login.php'; return;
     <?php endif; ?>
+
     const qty = parseInt(document.getElementById('qtyInput')?.value || 1);
+
     fetch('/literaspace/api/keranjang.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1108,7 +1110,7 @@ function beliSekarang(idBuku) {
     })
     .then(r => r.json())
     .then(d => {
-        if (d.success) window.location.href = 'keranjang.php';
+        if (d.success) window.location.href = 'checkout.php';
         else showToast(d.message || 'Gagal', false);
     })
     .catch(() => showToast('Terjadi kesalahan', false));
