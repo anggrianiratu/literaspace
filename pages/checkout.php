@@ -58,6 +58,11 @@ $subtotal = array_sum(array_map(fn($i) => $i['harga'] * $i['qty'], $cart_items))
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+<script type="text/javascript"
+    src="https://app.sandbox.midtrans.com/snap/snap.js"
+    data-client-key="Mid-client-kzgy1P3eLaTPplrh"></script>
+<!-- NOTE: Ganti dengan production keys saat go live! --> 
 <style>
 :root{
     --indigo:#3b2ec0; --indigo-deep:#1e1667;
@@ -69,7 +74,7 @@ $subtotal = array_sum(array_map(fn($i) => $i['harga'] * $i['qty'], $cart_items))
 *{ margin:0; padding:0; box-sizing:border-box; }
 body{ font-family:'DM Sans',sans-serif; background:var(--gray-50); color:var(--gray-800); }
 
-/* NAVBAR — sama persis dengan keranjang.php */
+/* NAVBAR */
 .navbar{ position:sticky; top:0; z-index:50; background:#fff; box-shadow:0 2px 16px rgba(30,22,103,.09); border-bottom:1.5px solid var(--gray-200); }
 .navbar-inner{ max-width:1280px; margin:0 auto; padding:0 1.5rem; display:flex; align-items:center; justify-content:space-between; height:68px; gap:1rem; }
 .logo-icon{ width:40px; height:40px; background:var(--indigo-deep); border-radius:10px; display:flex; align-items:center; justify-content:center; transition:background .2s,transform .2s; flex-shrink:0; }
@@ -173,11 +178,11 @@ body{ font-family:'DM Sans',sans-serif; background:var(--gray-50); color:var(--g
 .sum-total .lbl{ font-size:.95rem; font-weight:700; }
 .sum-total .val{ font-size:1.1rem; font-weight:700; color:var(--indigo-deep); }
 
-.shipping-option,.payment-option{
+.shipping-option {
     border:1.5px solid var(--gray-200); border-radius:10px;
     padding:.8rem; margin-bottom:.8rem; cursor:pointer; transition:.2s;
 }
-.shipping-option.active,.payment-option.active{ border-color:var(--indigo); background:rgba(59,46,192,.04); }
+.shipping-option.active { border-color:var(--indigo); background:rgba(59,46,192,.04); }
 .option-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
 .option-title{ font-size:.86rem; font-weight:600; }
 .option-desc{ font-size:.75rem; color:var(--gray-400); margin-top:.2rem; }
@@ -189,6 +194,7 @@ body{ font-family:'DM Sans',sans-serif; background:var(--gray-50); color:var(--g
     font-family:'DM Sans',sans-serif; font-size:.9rem; font-weight:700; cursor:pointer;
 }
 .btn-pay:hover{ background:var(--indigo); }
+.btn-pay:disabled { background: var(--gray-400); cursor: not-allowed; }
 
 .btn-outline{
     border:1.5px solid var(--indigo); color:var(--indigo); background:transparent;
@@ -293,7 +299,6 @@ textarea.form-input{ resize:vertical; min-height:80px; }
 
 <div class="checkout-grid">
     <div>
-        <!-- ADDRESS CARD -->
         <div class="card">
             <div class="card-header">
                 <div class="card-header-left">
@@ -308,7 +313,6 @@ textarea.form-input{ resize:vertical; min-height:80px; }
             </div>
         </div>
 
-        <!-- ITEMS -->
         <div class="card" style="margin-top:1rem;">
             <div class="card-header">
                 <div class="card-header-left"><i class="fas fa-store"></i> Pesanan</div>
@@ -335,12 +339,11 @@ textarea.form-input{ resize:vertical; min-height:80px; }
         </div>
     </div>
 
-    <!-- RIGHT SUMMARY -->
     <div>
         <div class="summary-box">
             <div class="summary-title">Ringkasan Belanja</div>
             <div class="summary-body">
-                <div style="margin-bottom:1rem;">
+                <div style="margin-bottom:1.5rem;">
                     <div style="font-size:.85rem;font-weight:600;margin-bottom:.7rem;">Metode Pengiriman</div>
                     <div class="shipping-option active" onclick="selectShipping(this,'regular',15000)">
                         <div class="option-top">
@@ -353,19 +356,6 @@ textarea.form-input{ resize:vertical; min-height:80px; }
                             <div><div class="option-title">Express (1–2 hari)</div><div class="option-desc">Pengiriman cepat</div></div>
                             <div class="option-price">Rp25.000</div>
                         </div>
-                    </div>
-                </div>
-
-                <div style="margin-bottom:1rem;">
-                    <div style="font-size:.85rem;font-weight:600;margin-bottom:.7rem;">Metode Pembayaran</div>
-                    <div class="payment-option active" onclick="selectPayment(this,'transfer')">
-                        <div class="option-top"><div><div class="option-title">Transfer Bank</div><div class="option-desc">Transfer ke rekening</div></div></div>
-                    </div>
-                    <div class="payment-option" onclick="selectPayment(this,'ewallet')">
-                        <div class="option-top"><div><div class="option-title">E-Wallet</div><div class="option-desc">GoPay, OVO, Dana</div></div></div>
-                    </div>
-                    <div class="payment-option" onclick="selectPayment(this,'cod')">
-                        <div class="option-top"><div><div class="option-title">COD</div><div class="option-desc">Bayar di tempat</div></div></div>
                     </div>
                 </div>
 
@@ -382,14 +372,13 @@ textarea.form-input{ resize:vertical; min-height:80px; }
                     <span class="lbl">Total Belanja</span>
                     <span class="val" id="sum-total"><?= formatRupiah($subtotal + 15000) ?></span>
                 </div>
-                <button class="btn-pay" onclick="submitCheckout()">Bayar</button>
+                <button class="btn-pay" onclick="submitCheckout()">Lanjut ke Pembayaran</button>
             </div>
         </div>
     </div>
 </div>
 </main>
 
-<!-- CHOOSE ADDRESS MODAL -->
 <div class="overlay" id="overlay-choose" onclick="closeChooseModal()">
     <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
@@ -405,7 +394,6 @@ textarea.form-input{ resize:vertical; min-height:80px; }
     </div>
 </div>
 
-<!-- ADD / EDIT ADDRESS MODAL -->
 <div class="overlay" id="overlay-address" onclick="closeAddressModal()">
     <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
@@ -469,7 +457,6 @@ const STORAGE_KEY   = 'literaspace_addresses_<?= $user_id ?>';
 
 let shippingCost    = 15000;
 let selectedKurir   = 'regular';
-let selectedPayment = 'transfer';
 let addresses       = [];
 let selectedIdx     = 0;
 
@@ -556,7 +543,6 @@ function deleteAddress(i) {
     if (selectedIdx >= addresses.length) selectedIdx = Math.max(0, addresses.length - 1);
     saveAddresses();
     if (addresses.length > 0) {
-        // re-render list in modal
         const list = document.getElementById('choose-list');
         list.innerHTML = addresses.map((a, j) => `
             <div class="addr-list-item ${j === selectedIdx ? 'chosen' : ''}" onclick="pickAddress(${j})">
@@ -597,7 +583,6 @@ async function openAddressModal(editIdx) {
     document.getElementById('modal-address-title').textContent = isEdit ? 'Ubah Alamat' : 'Tambah Alamat';
     document.getElementById('edit-index').value = isEdit ? editIdx : '';
 
-    // ALWAYS clear form first
     document.getElementById('inp-name').value  = '';
     document.getElementById('inp-phone').value = '';
     document.getElementById('kodepos').value   = '';
@@ -712,7 +697,7 @@ function saveAddress() {
     showToast('Alamat berhasil disimpan');
 }
 
-/* ── SHIPPING / PAYMENT ── */
+/* ── SHIPPING ── */
 function fmt(n) { return 'Rp' + n.toLocaleString('id-ID'); }
 function updateSummary() {
     document.getElementById('sum-ship').textContent  = fmt(shippingCost);
@@ -724,30 +709,90 @@ function selectShipping(el, val, cost) {
     selectedKurir = val; shippingCost = cost;
     updateSummary();
 }
-function selectPayment(el, val) {
-    document.querySelectorAll('.payment-option').forEach(i => i.classList.remove('active'));
-    el.classList.add('active');
-    selectedPayment = val;
-}
 
-/* ── CHECKOUT ── */
+/* ── CHECKOUT (HANYA MENGIRIM ALAMAT DAN KURIR) ── */
 function submitCheckout() {
     if (addresses.length === 0) { showToast('Alamat belum diisi', false); return; }
+    
+    // Ganti teks tombol menjadi loading
+    const btnPay = document.querySelector('.btn-pay');
+    btnPay.textContent = "Memproses...";
+    btnPay.disabled = true;
+
     const a = addresses[selectedIdx];
     const fullAlamat = `${a.alamat}, ${a.kecamatan}, ${a.kota}, ${a.provinsi}${a.kodepos ? ' ' + a.kodepos : ''}`;
+    
     fetch('/literaspace/api/checkout.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ alamat: fullAlamat, telepon: a.phone, kurir: selectedKurir, metode_pembayaran: selectedPayment })
+        body: JSON.stringify({ 
+            alamat: fullAlamat, 
+            telepon: a.phone, 
+            kurir: selectedKurir
+        })
     })
     .then(r => r.json())
     .then(data => {
+        btnPay.textContent = "Lanjut ke Pembayaran";
+        btnPay.disabled = false;
+
         if (data.success) {
-            showToast('Checkout berhasil');
-            setTimeout(() => { window.location.href = '/literaspace/pages/pesanan.php'; }, 1200);
-        } else { showToast(data.message, false); }
+            // Jika backend mengirimkan Snap Token dari Midtrans
+            if (data.snap_token) {
+                // Simpan order_data untuk finalize setelah pembayaran berhasil
+                const orderData = data.order_data;
+
+                window.snap.pay(data.snap_token, {
+                    onSuccess: function(result){
+                        showToast('Pembayaran berhasil! Memproses pesanan...');
+                        
+                        // FINALIZE ORDER: Simpan ke database hanya SETELAH pembayaran berhasil
+                        fetch('/literaspace/api/finalize-order.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                transaction_id: result.transaction_id || result.order_id,
+                                order_data: orderData
+                            })
+                        })
+                        .then(r => r.json())
+                        .then(finalizeData => {
+                            if (finalizeData.success) {
+                                showToast('✓ Pesanan berhasil dibuat!');
+                                setTimeout(() => { window.location.href = '/literaspace/pages/pesanan.php'; }, 1500);
+                            } else {
+                                showToast('Error: ' + (finalizeData.message || 'Gagal menyimpan pesanan'), false);
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Finalize error:', err);
+                            showToast('Pesanan mungkin berhasil tapi ada error saving. Hubungi support.', false);
+                        });
+                    },
+                    onPending: function(result){
+                        showToast('Status pembayaran: Menunggu');
+                    },
+                    onError: function(result){
+                        showToast('Pembayaran gagal atau dibatalkan. Keranjang Anda tetap tersimpan.', false);
+                    },
+                    onClose: function(){
+                        showToast('⚠️ Anda menutup pop-up sebelum menyelesaikan pembayaran. Keranjang tetap tersimpan.', false);
+                    }
+                });
+            } else {
+                showToast('Pesanan berhasil dibuat!');
+                setTimeout(() => { window.location.href = '/literaspace/pages/pesanan.php'; }, 1500);
+            }
+        } else { 
+            showToast(data.message || 'Terjadi kesalahan', false); 
+        }
     })
-    .catch(() => showToast('Terjadi kesalahan', false));
+    .catch(err => {
+        btnPay.textContent = "Lanjut ke Pembayaran";
+        btnPay.disabled = false;
+        console.error('Error:', err);
+        showToast('Terjadi kesalahan jaringan: ' + err.message, false);
+    });
 }
 
 /* ── TOAST ── */
