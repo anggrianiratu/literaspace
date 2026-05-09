@@ -696,7 +696,7 @@ function starHtml($rating, $size = '0.8rem') {
         </a>
 
         <div class="search-wrap">
-            <form action="../pages/kategori.php" method="GET">
+            <form action="../pages/katalog.php" method="GET">
                 <input type="search" name="q" placeholder="Cari judul, penulis, atau kategori..." class="search-input" />
                 <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
             </form>
@@ -868,8 +868,6 @@ function starHtml($rating, $size = '0.8rem') {
             </div>
         </div>
 
-
-
         <!-- ── ULASAN ── -->
         <div class="section-card">
             <div class="section-title">Ulasan Pembaca</div>
@@ -989,6 +987,31 @@ function showToast(msg, ok = true) {
     t._timer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ✅ Update badge navbar secara realtime tanpa reload
+function updateBadge(type, delta) {
+    const selector = type === 'cart' ? 'a[href*="keranjang"] .nav-badge' : 'a[href*="wishlist"] .nav-badge';
+    const linkSel  = type === 'cart' ? 'a[href*="keranjang"]'            : 'a[href*="wishlist"]';
+
+    let badge  = document.querySelector(selector);
+    const link = document.querySelector(linkSel);
+
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'nav-badge';
+        badge.textContent = '0';
+        link.appendChild(badge);
+    }
+
+    let count = parseInt(badge.textContent) || 0;
+    count += delta;
+
+    if (count <= 0) {
+        badge.remove();
+    } else {
+        badge.textContent = Math.min(count, 99);
+    }
+}
+
 // ── QTY ──
 function changeQty(delta) {
     const inp = document.getElementById('qtyInput');
@@ -1042,8 +1065,6 @@ function resetReviewForm() {
     document.getElementById('charCount').textContent = '0';
 }
 
-
-
 // ── SUBMIT REVIEW ──
 function submitReview(event, idBuku) {
     event.preventDefault();
@@ -1085,6 +1106,7 @@ function tambahKeranjang(idBuku) {
     .then(d => {
         if (d.success) {
             showToast('Ditambahkan ke keranjang!');
+            updateBadge('cart', qty); // ✅ naikkan badge sejumlah qty yang ditambahkan
             btn.innerHTML = '<i class="fas fa-check"></i> Ditambahkan';
             setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Keranjang'; }, 2000);
         } else {
@@ -1100,9 +1122,7 @@ function beliSekarang(idBuku) {
     <?php if (!$user_id): ?>
     window.location.href = '../auth/login.php'; return;
     <?php endif; ?>
-
     const qty = parseInt(document.getElementById('qtyInput')?.value || 1);
-
     fetch('/literaspace/api/keranjang.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1122,9 +1142,9 @@ function tambahWishlist(idBuku) {
     window.location.href = '../auth/login.php'; return;
     <?php endif; ?>
     const btn = document.getElementById('wishlistBtn');
-    const isActive = btn.classList.contains('active');
     btn.disabled = true;
-    fetch('/literaspace/api/wishlist.php', {
+    fetch('/literaspace/api/wishlist/add.php', // ✅ samakan endpoint dengan index.php
+        {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_buku: idBuku })
@@ -1133,13 +1153,17 @@ function tambahWishlist(idBuku) {
     .then(d => {
         btn.disabled = false;
         if (d.success) {
-            if (isActive) {
+            if (d.action === 'removed') {
+                // ✅ toggle OFF
                 btn.classList.remove('active');
                 btn.innerHTML = '<i class="far fa-heart"></i>';
+                updateBadge('wish', -1);
                 showToast('Dihapus dari wishlist');
             } else {
+                // ✅ toggle ON
                 btn.classList.add('active');
                 btn.innerHTML = '<i class="fas fa-heart"></i>';
+                updateBadge('wish', 1);
                 showToast('Disimpan ke wishlist!');
             }
         } else {

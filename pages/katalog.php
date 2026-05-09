@@ -732,9 +732,34 @@ function showToast(msg, ok = true) {
     setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 2800);
 }
 
+// ✅ Update badge navbar secara realtime tanpa reload
+function updateBadge(type, delta) {
+    const selector = type === 'cart' ? 'a[href*="keranjang"] .nav-badge' : 'a[href*="wishlist"] .nav-badge';
+    const linkSel  = type === 'cart' ? 'a[href*="keranjang"]'            : 'a[href*="wishlist"]';
+
+    let badge      = document.querySelector(selector);
+    const link     = document.querySelector(linkSel);
+
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'nav-badge';
+        badge.textContent = '0';
+        link.appendChild(badge);
+    }
+
+    let count = parseInt(badge.textContent) || 0;
+    count += delta;
+
+    if (count <= 0) {
+        badge.remove();
+    } else {
+        badge.textContent = Math.min(count, 99);
+    }
+}
+
 function tambahKeranjang(idBuku, btn) {
     <?php if (!$user_id): ?>
-        window.location.href = '/auth/login.php'; return;
+        window.location.href = '/literaspace/auth/login.php'; return;
     <?php endif; ?>
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:.8rem;"></i>';
@@ -747,6 +772,7 @@ function tambahKeranjang(idBuku, btn) {
     .then(d => {
         if (d.success) {
             showToast('Buku ditambahkan ke keranjang!');
+            updateBadge('cart', 1); // ✅ langsung update badge keranjang
             btn.innerHTML = '<i class="fas fa-check" style="font-size:.8rem;color:var(--success);"></i>';
             setTimeout(() => { btn.innerHTML = '<i class="fas fa-cart-plus"></i>'; btn.disabled = false; }, 2000);
         } else {

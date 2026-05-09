@@ -598,6 +598,31 @@ function showToast(msg, ok = true) {
     setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 2800);
 }
 
+// ✅ Update badge navbar secara realtime tanpa reload
+function updateBadge(type, delta) {
+    const selector  = type === 'cart' ? 'a[href*="keranjang"] .nav-badge' : 'a[href*="wishlist"] .nav-badge';
+    const linkSel   = type === 'cart' ? 'a[href*="keranjang"]'            : 'a[href*="wishlist"]';
+
+    let badge = document.querySelector(selector);
+    const link  = document.querySelector(linkSel);
+
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'nav-badge';
+        badge.textContent = '0';
+        link.appendChild(badge);
+    }
+
+    let count = parseInt(badge.textContent) || 0;
+    count += delta;
+
+    if (count <= 0) {
+        badge.remove();
+    } else {
+        badge.textContent = Math.min(count, 99);
+    }
+}
+
 function tambahKeranjang(idBuku, btn) {
     <?php if (!$user_id): ?>
         window.location.href = '/literaspace/auth/login.php'; return;
@@ -613,6 +638,7 @@ function tambahKeranjang(idBuku, btn) {
     .then(d => {
         if (d.success) {
             showToast('Buku ditambahkan ke keranjang!');
+            updateBadge('cart', 1); // ✅ langsung update badge
             btn.innerHTML = '<i class="fas fa-check"></i>';
             setTimeout(() => { btn.innerHTML = '<i class="fas fa-cart-plus"></i>'; btn.disabled = false; }, 2000);
         } else {
@@ -630,7 +656,7 @@ function tambahWishlist(idBuku, btn) {
     <?php if (!$user_id): ?>
         window.location.href = '/literaspace/auth/login.php'; return;
     <?php endif; ?>
-    fetch('/literaspace/api/wishlist.php', {
+    fetch('/literaspace/api/wishlist/add.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_buku: idBuku })
@@ -639,18 +665,19 @@ function tambahWishlist(idBuku, btn) {
     .then(d => {
         if (d.success) {
             const icon = btn.querySelector('i');
-            const isNowWishlisted = wishlistedIds.has(idBuku);
-            if (isNowWishlisted) {
+            if (d.action === 'removed') {
                 wishlistedIds.delete(idBuku);
                 icon.className = 'far fa-heart';
                 btn.classList.remove('wishlisted');
                 syncWishlistButtons(idBuku, false);
+                updateBadge('wish', -1); // ✅ kurangi badge
                 showToast('Dihapus dari wishlist.');
             } else {
                 wishlistedIds.add(idBuku);
                 icon.className = 'fas fa-heart';
                 btn.classList.add('wishlisted');
                 syncWishlistButtons(idBuku, true);
+                updateBadge('wish', 1); // ✅ tambah badge
                 showToast('Disimpan ke wishlist!');
             }
         } else {
