@@ -1,9 +1,4 @@
 <?php
-// ========================================
-// INDEX.PHP - LITERASPACE HOME PAGE
-// Backend Logic & Database Queries
-// ========================================
-
 session_start();
 require_once __DIR__ . '/config/db.php';
 
@@ -11,39 +6,23 @@ $pdo            = getDB();
 $user_id        = $_SESSION['user_id'] ?? null;
 $cart_count     = 0;
 $wishlist_count = 0;
-$categories     = [];
 $popular_books  = [];
 $error          = null;
-
 $wishlisted_ids = [];
 
 try {
-    $stmt_categories = $pdo->query("SELECT id_kategori, nama_kategori FROM kategori LIMIT 7");
-    $categories = $stmt_categories->fetchAll(PDO::FETCH_ASSOC);
-
-    // FIX 1: Buku populer — tambahkan filter kategori tertentu atau gunakan kolom is_popular jika ada.
-    // Saat ini query menampilkan buku terbaru (ORDER BY id_buku DESC), bukan "populer" sesungguhnya.
-    // Jika ingin buku populer berdasarkan jumlah terjual / pesanan, ganti query di bawah sesuai skema DB kamu.
-    // Contoh jika ada kolom `terjual` di tabel buku:
-    // $stmt_popular = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku ORDER BY terjual DESC LIMIT 5");
-    // Untuk sementara tetap pakai DESC agar tidak semua kategori masuk, pastikan buku populer
-    // tidak overlap dengan kategori lain menggunakan WHERE id_kategori NOT IN (1,2,3,4):
     $stmt_popular = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE is_popular = 1 LIMIT 5");
     $popular_books = $stmt_popular->fetchAll(PDO::FETCH_ASSOC);
 
-    // id_kategori = 3 → Fantasi
     $stmt_fantasy = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 3 LIMIT 6");
     $fantasy_books = $stmt_fantasy->fetchAll(PDO::FETCH_ASSOC);
 
-    // id_kategori = 2 → Drama
     $stmt_drama = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 2 LIMIT 6");
     $drama_books = $stmt_drama->fetchAll(PDO::FETCH_ASSOC);
 
-    // id_kategori = 1 → Romance
     $stmt_romance = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 1 LIMIT 6");
     $romance_books = $stmt_romance->fetchAll(PDO::FETCH_ASSOC);
 
-    // id_kategori = 4 → Historis
     $stmt_historis = $pdo->query("SELECT id_buku, judul, penulis, harga, cover_image FROM buku WHERE id_kategori = 4 LIMIT 6");
     $historis_books = $stmt_historis->fetchAll(PDO::FETCH_ASSOC);
 
@@ -73,15 +52,12 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LiteraSpace — Toko Buku Online Terlengkap</title>
-    <meta name="description" content="Jelajahi koleksi buku terlengkap di LiteraSpace. Dari fiksi, non-fiksi, hingga buku anak-anak." />
-
+    <meta name="description" content="Jelajahi koleksi buku terlengkap di LiteraSpace." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
     <style>
-        /* ── Design tokens ── */
         :root {
             --indigo-deep:  #1e1667;
             --indigo-mid:   #2d2a8f;
@@ -98,11 +74,10 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
             --radius:       14px;
             --shadow:       0 4px 24px rgba(30,22,103,.10);
         }
-
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'DM Sans', sans-serif; background: var(--gray-50); color: var(--gray-800); }
 
-        /* ── Navbar ── */
+        /* NAVBAR */
         .navbar { position: sticky; top: 0; z-index: 50; background: var(--white); box-shadow: 0 4px 24px rgba(30,22,103,.13), 0 1px 0 rgba(30,22,103,.06); }
         .logo-icon { width: 40px; height: 40px; background: var(--indigo-deep); border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: background .2s, transform .2s; flex-shrink: 0; }
         .logo-icon:hover { background: var(--indigo-light); transform: scale(1.05); }
@@ -129,14 +104,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         .dropdown-menu a:last-child:hover { background: #fdecea; color: var(--error); }
         .dropdown-menu hr { border-color: var(--gray-200); margin: .25rem 0; }
 
-        /* ── Category pill bar ── */
-        .cat-bar { border-top: 1.5px solid var(--gray-100); background: var(--white); }
-        .cat-bar-inner { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; display: flex; gap: .5rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
-        .cat-bar-inner::-webkit-scrollbar { display: none; }
-        .cat-pill { display: inline-flex; align-items: center; padding: .45rem 1rem; white-space: nowrap; font-size: .82rem; font-weight: 500; color: var(--gray-500); border: 1.5px solid transparent; border-radius: 9999px; text-decoration: none; transition: color .2s, border-color .2s, background .2s; flex-shrink: 0; margin: .55rem 0; }
-        .cat-pill:hover { color: var(--indigo-deep); border-color: var(--indigo-light); background: rgba(59,46,192,.06); }
-
-        /* ── Hero ── */
+        /* HERO */
         .hero { background: var(--indigo-deep); overflow: hidden; position: relative; margin-top: 1.5rem; }
         .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(59,46,192,.55) 0%, transparent 70%), radial-gradient(ellipse 40% 60% at 10% 90%, rgba(212,146,10,.18) 0%, transparent 60%); pointer-events: none; }
         .hero-inner { max-width: 1280px; margin: 0 auto; padding: 4.5rem 1.5rem 5rem; position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 3rem; }
@@ -157,13 +125,10 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         .b3 { background: linear-gradient(145deg,#0f4c75,#1b6ca8); top: 50px; left: 70px; transform: rotate(10deg); }
         .b-spine { position: absolute; left: 0; top: 0; width: 14px; height: 100%; background: rgba(0,0,0,.25); border-radius: 6px 0 0 6px; }
 
-        /* ── Section commons ── */
+        /* SECTIONS */
         .section { padding: 3.5rem 0; }
         .section-inner { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
-
-        /* FIX 3: section-alt sekarang putih, bukan ungu/biru */
         .section-alt { background: var(--white); }
-
         .section-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1.8rem; gap: 1rem; flex-wrap: wrap; }
         .section-title { font-family: 'Playfair Display', serif; font-size: 1.55rem; color: var(--gray-800); display: flex; align-items: center; gap: .5rem; }
         .section-title .icon { font-size: 1.1rem; }
@@ -173,7 +138,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         .see-all i { font-size: .72rem; transition: transform .2s; }
         .see-all:hover i { transform: translateX(3px); }
 
-        /* ── Book card ── */
+        /* BOOK CARD */
         .book-card { background: var(--white); border-radius: 12px; border: 1.5px solid var(--gray-200); overflow: hidden; transition: transform .3s, box-shadow .3s; }
         .book-card:hover { transform: translateY(-5px); box-shadow: 0 16px 40px rgba(30,22,103,.12); }
         .cover-wrap { position: relative; width: 100%; overflow: hidden; }
@@ -190,25 +155,17 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         .btn-wish { background: none; border: none; cursor: pointer; font-size: .95rem; color: var(--gray-500); padding: 0; transition: color .2s; display: flex; align-items: center; justify-content: center; }
         .btn-wish:hover { color: var(--error); }
         .btn-wish.wishlisted { color: var(--error); }
-        .btn-wish.wishlisted i { font-weight: 900; }
-
-        /* FIX 2: books-grid-4 ukurannya disamakan dengan books-grid-5 agar kartu tidak terlalu besar */
         .books-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
         .books-grid-4 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
-        @media (max-width: 1024px) {
-            .books-grid-5 { grid-template-columns: repeat(3, 1fr); }
-            .books-grid-4 { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (max-width: 640px) {
-            .books-grid-5, .books-grid-4 { grid-template-columns: repeat(2, 1fr); }
-        }
+        @media (max-width: 1024px) { .books-grid-5, .books-grid-4 { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 640px) { .books-grid-5, .books-grid-4 { grid-template-columns: repeat(2, 1fr); } }
 
-        /* Empty state */
+        /* EMPTY STATE */
         .empty-state { background: var(--white); border-radius: var(--radius); border: 1.5px solid var(--gray-200); padding: 4rem 2rem; text-align: center; }
         .empty-state i { font-size: 2.5rem; color: var(--gray-200); display: block; margin-bottom: .8rem; }
         .empty-state p { font-size: .88rem; color: var(--gray-500); }
 
-        /* ── Promo Banner ── */
+        /* PROMO BANNER */
         .promo-banner { background: var(--indigo-deep); border-radius: var(--radius); padding: 2.8rem 2.5rem; display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: center; position: relative; overflow: hidden; }
         .promo-banner::before { content: ''; position: absolute; right: -80px; top: -80px; width: 260px; height: 260px; border-radius: 50%; background: rgba(255,255,255,.04); pointer-events: none; }
         .promo-banner::after { content: ''; position: absolute; right: 60px; bottom: -100px; width: 200px; height: 200px; border-radius: 50%; background: rgba(59,46,192,.2); pointer-events: none; }
@@ -223,8 +180,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         .btn-promo { padding: .65rem 1.4rem; background: var(--amber); color: var(--gray-800); border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: .88rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background .2s; }
         .btn-promo:hover { background: #e8a412; }
 
-        /* ── Footer ── */
-        footer { background: var(--gray-800); color: rgba(255,255,255,.65); margin-top: 0; }
+        /* FOOTER */
+        footer { background: var(--gray-800); color: rgba(255,255,255,.65); }
         .footer-inner { max-width: 1280px; margin: 0 auto; padding: 3.5rem 1.5rem 2rem; display: grid; grid-template-columns: 2fr 1fr 1fr 1.4fr; gap: 2.5rem; }
         @media (max-width: 900px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 540px) { .footer-inner { grid-template-columns: 1fr; } }
@@ -245,10 +202,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
         .footer-bottom { max-width: 1280px; margin: 0 auto; padding: 1.2rem 1.5rem; border-top: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
         .footer-bottom p { font-size: .78rem; }
         .pay-imgs { display: flex; gap: .6rem; align-items: center; }
-        .pay-imgs img { height: 22px; opacity: .5; transition: opacity .2s; }
-        .pay-imgs img:hover { opacity: .85; }
 
-        /* Toast */
+        /* TOAST */
         #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; padding: .7rem 1.1rem; border-radius: 10px; color: var(--white); font-size: .87rem; display: flex; align-items: center; gap: .5rem; box-shadow: 0 8px 24px rgba(0,0,0,.18); transform: translateY(80px); opacity: 0; transition: all .3s; pointer-events: none; }
     </style>
 </head>
@@ -256,11 +211,11 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 
 <?php $wishlisted_json = json_encode(array_map('intval', $wishlisted_ids)); ?>
 
-<!-- ════════════════════════ NAVBAR ════════════════════════ -->
+<!-- NAVBAR -->
 <nav class="navbar">
     <div style="max-width:1280px; margin:0 auto; padding:0 1.5rem;">
         <div style="display:flex; align-items:center; justify-content:space-between; height:68px; gap:1rem;">
-            <a href="/index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
+            <a href="/literaspace/index.php" style="display:flex; align-items:center; gap:.6rem; text-decoration:none; flex-shrink:0;">
                 <div class="logo-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
                 </div>
@@ -300,18 +255,6 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
             </div>
         </div>
     </div>
-
-    <?php if (!empty($categories)): ?>
-    <div class="cat-bar">
-        <div class="cat-bar-inner">
-            <?php foreach ($categories as $cat): ?>
-                <a href="/literaspace/pages/katalog.php?id=<?= urlencode($cat['id_kategori']) ?>" class="cat-pill">
-                    <?= htmlspecialchars($cat['nama_kategori']) ?>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </div>
-    <?php endif; ?>
 </nav>
 
 <?php if ($error): ?>
@@ -322,7 +265,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 </div>
 <?php endif; ?>
 
-<!-- ════════════════════════ HERO ════════════════════════ -->
+<!-- HERO -->
 <section class="hero">
     <div class="hero-inner">
         <div>
@@ -345,7 +288,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     </div>
 </section>
 
-<!-- ════════════════════════ BUKU TERPOPULER ════════════════════════ -->
+<!-- BUKU TERPOPULER -->
 <section class="section">
     <div class="section-inner">
         <div class="section-head">
@@ -376,8 +319,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.4rem;">
                             <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
                             <div style="display:flex; gap:.6rem; align-items:center;">
-                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)" title="Simpan ke wishlist"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
-                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Tambah ke keranjang"><i class="fas fa-cart-plus"></i></button>
+                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
+                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)"><i class="fas fa-cart-plus"></i></button>
                             </div>
                         </div>
                     </div>
@@ -390,8 +333,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     </div>
 </section>
 
-<!-- ════════════════════════ EPIK & FANTASI (id=3) ════════════════════════ -->
-<!-- FIX 3: section-alt sekarang putih -->
+<!-- EPIK & FANTASI -->
 <section class="section section-alt">
     <div class="section-inner">
         <div class="section-head">
@@ -422,10 +364,10 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         <a href="/literaspace/pages/detail.php?id=<?= $book['id_buku'] ?>" class="book-title-link"><?= htmlspecialchars(truncateText($book['judul'], 45)) ?></a>
                         <p class="book-author"><?= htmlspecialchars($book['penulis'] ?? '—') ?></p>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.4rem;">
-                            <span class="book-price" style="color:var(--indigo-light);"><?= formatRupiah($book['harga']) ?></span>
+                            <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
                             <div style="display:flex; gap:.6rem; align-items:center;">
-                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)" title="Wishlist"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
-                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Keranjang"><i class="fas fa-cart-plus"></i></button>
+                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
+                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)"><i class="fas fa-cart-plus"></i></button>
                             </div>
                         </div>
                     </div>
@@ -433,12 +375,12 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="empty-state"><i class="fas fa-wand-magic-sparkles"></i><p>Belum ada buku fantasi yang tersedia.</p></div>
+            <div class="empty-state"><i class="fas fa-wand-magic-sparkles"></i><p>Belum ada buku fantasi.</p></div>
         <?php endif; ?>
     </div>
 </section>
 
-<!-- ════════════════════════ DRAMA (id=2) ════════════════════════ -->
+<!-- DRAMA -->
 <section class="section">
     <div class="section-inner">
         <div class="section-head">
@@ -468,8 +410,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
                             <div style="display:flex; gap:.6rem; align-items:center;">
-                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)" title="Wishlist"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
-                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Keranjang"><i class="fas fa-cart-plus"></i></button>
+                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
+                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)"><i class="fas fa-cart-plus"></i></button>
                             </div>
                         </div>
                     </div>
@@ -477,13 +419,12 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="empty-state"><i class="fas fa-masks-theater"></i><p>Belum ada buku drama yang tersedia.</p></div>
+            <div class="empty-state"><i class="fas fa-masks-theater"></i><p>Belum ada buku drama.</p></div>
         <?php endif; ?>
     </div>
 </section>
 
-<!-- ════════════════════════ ROMANCE (id=1) ════════════════════════ -->
-<!-- FIX 3: section-alt putih -->
+<!-- ROMANCE -->
 <section class="section section-alt">
     <div class="section-inner">
         <div class="section-head">
@@ -513,8 +454,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
                             <div style="display:flex; gap:.6rem; align-items:center;">
-                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)" title="Wishlist"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
-                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Keranjang"><i class="fas fa-cart-plus"></i></button>
+                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
+                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)"><i class="fas fa-cart-plus"></i></button>
                             </div>
                         </div>
                     </div>
@@ -522,12 +463,12 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="empty-state"><i class="fas fa-heart"></i><p>Belum ada buku romance yang tersedia.</p></div>
+            <div class="empty-state"><i class="fas fa-heart"></i><p>Belum ada buku romance.</p></div>
         <?php endif; ?>
     </div>
 </section>
 
-<!-- ════════════════════════ HISTORIS (id=4) ════════════════════════ -->
+<!-- HISTORIS -->
 <section class="section">
     <div class="section-inner">
         <div class="section-head">
@@ -557,8 +498,8 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span class="book-price"><?= formatRupiah($book['harga']) ?></span>
                             <div style="display:flex; gap:.6rem; align-items:center;">
-                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)" title="Wishlist"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
-                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)" title="Keranjang"><i class="fas fa-cart-plus"></i></button>
+                                <button class="btn-wish <?= $is_wishlisted ? 'wishlisted' : '' ?>" onclick="tambahWishlist(<?= $book['id_buku'] ?>, this)"><i class="<?= $is_wishlisted ? 'fas' : 'far' ?> fa-heart"></i></button>
+                                <button class="btn-cart" onclick="tambahKeranjang(<?= $book['id_buku'] ?>, this)"><i class="fas fa-cart-plus"></i></button>
                             </div>
                         </div>
                     </div>
@@ -566,12 +507,12 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="empty-state"><i class="fas fa-landmark"></i><p>Belum ada buku historis yang tersedia.</p></div>
+            <div class="empty-state"><i class="fas fa-landmark"></i><p>Belum ada buku historis.</p></div>
         <?php endif; ?>
     </div>
 </section>
 
-<!-- ════════════════════════ PROMO BANNER ════════════════════════ -->
+<!-- PROMO BANNER -->
 <section class="section">
     <div class="section-inner">
         <div class="promo-banner">
@@ -591,31 +532,31 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     </div>
 </section>
 
-<!-- ════════════════════════ FOOTER ════════════════════════ -->
+<!-- FOOTER -->
 <footer>
     <div class="footer-inner">
         <div>
             <div class="footer-logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg></div>
             <p class="footer-brand">LiteraSpace</p>
-            <p class="footer-about">Toko buku online terpercaya dengan koleksi lengkap dari berbagai genre dan penulis. Kami berkomitmen memberikan pengalaman belanja terbaik.</p>
+            <p class="footer-about">Toko buku online terpercaya dengan koleksi lengkap dari berbagai genre dan penulis.</p>
             <p class="footer-copy">© 2026 LiteraSpace. Semua hak dilindungi.</p>
         </div>
         <div>
             <p class="footer-heading">Bantuan</p>
             <ul class="footer-links">
-                <li><a href="/faq">FAQ</a></li>
-                <li><a href="/lacak-pesanan">Lacak Pesanan</a></li>
-                <li><a href="/return-policy">Kebijakan Pengembalian</a></li>
-                <li><a href="/hubungi-kami">Hubungi Kami</a></li>
+                <li><a href="#">FAQ</a></li>
+                <li><a href="#">Lacak Pesanan</a></li>
+                <li><a href="#">Kebijakan Pengembalian</a></li>
+                <li><a href="#">Hubungi Kami</a></li>
             </ul>
         </div>
         <div>
             <p class="footer-heading">Informasi</p>
             <ul class="footer-links">
-                <li><a href="/tentang">Tentang Kami</a></li>
-                <li><a href="/syarat-ketentuan">Syarat &amp; Ketentuan</a></li>
-                <li><a href="/privacy-policy">Privasi</a></li>
-                <li><a href="/blog">Blog</a></li>
+                <li><a href="#">Tentang Kami</a></li>
+                <li><a href="#">Syarat &amp; Ketentuan</a></li>
+                <li><a href="#">Privasi</a></li>
+                <li><a href="#">Blog</a></li>
             </ul>
         </div>
         <div>
@@ -637,10 +578,9 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     </div>
 </footer>
 
-<!-- Toast -->
 <div id="toast">
     <i class="fas fa-check-circle"></i>
-    <span id="toast-msg">Buku ditambahkan ke keranjang!</span>
+    <span id="toast-msg">Berhasil!</span>
 </div>
 
 <style>
