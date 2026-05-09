@@ -80,8 +80,20 @@ try {
             'total_harga' => $total_keseluruhan
         ];
 
-        // Server Key Midtrans Sandbox
-        $serverKey = 'Mid-server-Ton0zUDMSihzRmDokat60Khz';
+        // Load environment variables dari .env file
+        $envFile = __DIR__ . '/../.env';
+        if (file_exists($envFile)) {
+            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+                    list($key, $value) = explode('=', $line, 2);
+                    putenv(trim($key) . '=' . trim($value));
+                }
+            }
+        }
+
+        // Server Key Midtrans dari environment variable
+        $serverKey = getenv('MIDTRANS_SERVER_KEY');
 
         $item_details_midtrans = [];
         foreach ($detail_items as $detail) {
