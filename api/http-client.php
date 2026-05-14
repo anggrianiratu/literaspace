@@ -28,32 +28,44 @@ class HttpClient {
      * POST menggunakan cURL
      */
     private static function postWithCurl($url, $data, $headers) {
-        $curl = curl_init();
-        curl_setopt_array($curl, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode($data),
-            CURLOPT_HTTPHEADER     => array_merge(
-                ['Content-Type: application/json'],
-                $headers
-            ),
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0
-        ]);
 
-        $response_body = curl_exec($curl);
-        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $error = curl_error($curl);
-        curl_close($curl);
+    // Ubah associative array jadi format Header: Value
+    $formatted_headers = ['Content-Type: application/json'];
 
-        if ($error) {
-            throw new Exception("cURL Error: $error");
+    if (is_array($headers)) {
+        foreach ($headers as $key => $value) {
+            $formatted_headers[] = $key . ': ' . $value;
         }
-
-        return ['http_code' => $http_code, 'body' => $response_body];
     }
+
+    $curl = curl_init();
+
+    curl_setopt_array($curl, [
+        CURLOPT_URL            => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($data),
+        CURLOPT_HTTPHEADER     => $formatted_headers,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0
+    ]);
+
+    $response_body = curl_exec($curl);
+    $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $error = curl_error($curl);
+
+    curl_close($curl);
+
+    if ($error) {
+        throw new Exception("cURL Error: $error");
+    }
+
+    return [
+        'http_code' => $http_code,
+        'body' => $response_body
+    ];
+}
 
     /**
      * POST menggunakan Streams API (file_get_contents)
