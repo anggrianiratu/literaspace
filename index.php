@@ -979,7 +979,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 <?php endif; ?>
 
 <!-- ══ BUKU TERPOPULER ══ -->
-<section class="section">
+<section class="section section-alt">
     <div class="section-inner">
         <div class="section-head">
             <div>
@@ -1032,8 +1032,85 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 
 <hr class="section-divider" />
 
+<!-- ══ TOP CATEGORIES ══ -->
+<section class="section" style="padding: 2rem 0 3rem;">
+    <div class="section-inner">
+        <div style="text-align:center; margin-bottom: 2rem;">
+            <p class="section-eyebrow">Jelajahi Koleksi</p>
+            <h2 class="section-title" style="justify-content:center;">Top Genres</h2>
+        </div>
+        <div style="display:flex; justify-content:center; gap:4rem; flex-wrap:wrap;">
+
+            <!-- Fantasi -->
+            <a href="/literaspace/pages/katalog.php?kategori=3" style="text-decoration:none; display:flex; flex-direction:column; align-items:center; gap:.75rem;">
+                <div style="
+                    width: 180px; height: 180px; border-radius: 50%;
+                    background: linear-gradient(135deg,#1a1040,#4a2f9a);
+                    display:flex; align-items:center; justify-content:center;
+                    box-shadow: 0 8px 24px rgba(74,47,154,.25);
+                    transition: transform .3s, box-shadow .3s;
+                    overflow: hidden; border: 3px solid rgba(255,255,255,.8);
+                " onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 36px rgba(74,47,154,.35)'"
+                   onmouseout="this.style.transform=''; this.style.boxShadow='0 8px 24px rgba(74,47,154,.25)'">
+                    <i class="fas fa-hat-wizard" style="font-size:3.5rem; color:rgba(255,255,255,.9);"></i>
+                </div>
+                <span style="font-size:.88rem; font-weight:600; color:var(--ink); letter-spacing:.03em;">Fantasi</span>
+            </a>
+            
+            <!-- Drama -->
+            <a href="/literaspace/pages/katalog.php?kategori=2" style="text-decoration:none; display:flex; flex-direction:column; align-items:center; gap:.75rem;">
+                <div style="
+                    width: 180px; height: 180px; border-radius: 50%;
+                    background: linear-gradient(135deg,#2d1b40,#7a4a6e);
+                    display:flex; align-items:center; justify-content:center;
+                    box-shadow: 0 8px 24px rgba(122,74,110,.25);
+                    transition: transform .3s, box-shadow .3s;
+                    overflow: hidden; border: 3px solid rgba(255,255,255,.8);
+                " onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 36px rgba(122,74,110,.35)'"
+                   onmouseout="this.style.transform=''; this.style.boxShadow='0 8px 24px rgba(122,74,110,.25)'">
+                    <i class="fas fa-masks-theater" style="font-size:3.5rem; color:rgba(255,255,255,.9);"></i>
+                </div>
+                <span style="font-size:.88rem; font-weight:600; color:var(--ink); letter-spacing:.03em;">Drama</span>
+            </a>
+
+            <!-- Romance -->
+            <a href="/literaspace/pages/katalog.php?kategori=1" style="text-decoration:none; display:flex; flex-direction:column; align-items:center; gap:.75rem; group;">
+                <div style="
+                    width: 180px; height: 180px; border-radius: 50%;
+                    background: linear-gradient(135deg,#7a2040,#c44a6c);
+                    display:flex; align-items:center; justify-content:center;
+                    box-shadow: 0 8px 24px rgba(196,74,108,.25);
+                    transition: transform .3s, box-shadow .3s;
+                    overflow: hidden; border: 3px solid rgba(255,255,255,.8);
+                " onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 36px rgba(196,74,108,.35)'"
+                   onmouseout="this.style.transform=''; this.style.boxShadow='0 8px 24px rgba(196,74,108,.25)'">
+                    <i class="fas fa-heart" style="font-size:3.5rem; color:rgba(255,255,255,.9);"></i>
+                </div>
+                <span style="font-size:.88rem; font-weight:600; color:var(--ink); letter-spacing:.03em;">Romance</span>
+            </a>
+
+            <!-- Historis -->
+            <a href="/literaspace/pages/katalog.php?kategori=4" style="text-decoration:none; display:flex; flex-direction:column; align-items:center; gap:.75rem;">
+                <div style="
+                    width: 180px; height: 180px; border-radius: 50%;
+                    background: linear-gradient(135deg,#3d2b00,#8b6200);
+                    display:flex; align-items:center; justify-content:center;
+                    box-shadow: 0 8px 24px rgba(139,98,0,.25);
+                    transition: transform .3s, box-shadow .3s;
+                    overflow: hidden; border: 3px solid rgba(255,255,255,.8);
+                " onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 36px rgba(139,98,0,.35)'"
+                   onmouseout="this.style.transform=''; this.style.boxShadow='0 8px 24px rgba(139,98,0,.25)'">
+                    <i class="fas fa-landmark" style="font-size:3.5rem; color:rgba(255,255,255,.9);"></i>
+                </div>
+                <span style="font-size:.88rem; font-weight:600; color:var(--ink); letter-spacing:.03em;">Historis</span>
+            </a>
+
+        </div>
+    </div>
+</section>
+
 <!-- ══ EPIK & FANTASI ══ -->
-<section class="section section-alt">
+<section class="section">
     <div class="section-inner">
         <div class="section-head">
             <div>
@@ -1088,7 +1165,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 <hr class="section-divider" />
 
 <!-- ══ DRAMA ══ -->
-<section class="section">
+<section class="section section-alt">
     <div class="section-inner">
         <div class="section-head">
             <div>
@@ -1135,7 +1212,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 <hr class="section-divider" />
 
 <!-- ══ ROMANCE ══ -->
-<section class="section section-alt">
+<section class="section">
     <div class="section-inner">
         <div class="section-head">
             <div>
@@ -1182,7 +1259,7 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
 <hr class="section-divider" />
 
 <!-- ══ HISTORIS ══ -->
-<section class="section">
+<section class="section section-alt">
     <div class="section-inner">
         <div class="section-head">
             <div>
