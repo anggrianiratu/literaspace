@@ -824,28 +824,19 @@ function getNextStatusOptions($currentStatus) {
         <form method="POST" action="pesanan.php" id="updateForm">
             <input type="hidden" name="action" value="update_status">
             <input type="hidden" name="id_pesanan" id="updateOrderId">
-            <div class="modal-body">
+            <div class="modal-body">   <!-- ← ini harus DITUTUP sebelum modal-footer -->
                 <div class="form-group" style="margin-bottom:1rem;">
                     <label class="form-label">Status saat ini</label>
                     <div id="currentStatusBadge"></div>
                 </div>
                 <div class="form-group" style="margin-bottom:1rem;">
                     <label class="form-label">Ubah status ke <span style="color:var(--error);">*</span></label>
-                    <!-- ✅ FIX: Options di-generate via JS sesuai alur ENUM -->
-                    <select name="status" id="updateStatus" class="form-select" required
-                            onchange="toggleNoResi(this.value)">
-                    </select>
+                    <input type="hidden" name="status" value="dikirim">
+                    <div class="form-input" style="background: var(--gray-100); cursor: not-allowed;">
+                        Dikirim
+                    </div>
                 </div>
-                <!-- Field No. Resi: hanya muncul saat pilih 'dikirim' -->
-                <div class="form-group" id="noResiGroup">
-                    <label class="form-label">No. Resi Pengiriman</label>
-                    <input type="text" name="no_resi" id="noResiInput"
-                           class="form-input" placeholder="Contoh: JNE1234567890ID">
-                    <small style="color:var(--gray-500); font-size:.8rem; margin-top:.25rem;">
-                        Opsional, tapi sangat disarankan agar customer bisa tracking.
-                    </small>
-                </div>
-            </div>
+            </div>  <!-- ← </div> untuk modal-body yang sebelumnya HILANG -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('updateModal')">
                     <i class="fas fa-times"></i> Batal
@@ -939,8 +930,8 @@ document.querySelectorAll('.modal').forEach(m => {
 // ✅ FIX: next status sesuai alur ENUM (tidak ada 'diproses')
 // ══════════════════════════
 const STATUS_NEXT = {
-    dikemas: [{ value: 'dikirim', label: '🚚 Dikirim' }],
-    dikirim: [{ value: 'selesai', label: '✅ Selesai' }],
+    dikemas: [{ value: 'dikirim', label: 'Dikirim' }],
+    dikirim: [{ value: 'selesai', label: 'Selesai' }],
 };
 
 const STATUS_BADGE = {
@@ -960,35 +951,8 @@ function openUpdate(id, currentStatus) {
     document.getElementById('updateOrderLabel').textContent = '#' + id;
     document.getElementById('currentStatusBadge').innerHTML = makeBadgeHtml(currentStatus);
 
-    const select = document.getElementById('updateStatus');
-    select.innerHTML = '';
-
-    const options = STATUS_NEXT[currentStatus] || [
-        { value: 'dikemas', label: '📦 Dikemas' },
-        { value: 'dikirim', label: '🚚 Dikirim' },
-        { value: 'selesai', label: '✅ Selesai' },
-    ];
-    options.forEach(opt => {
-        const o = document.createElement('option');
-        o.value = opt.value;
-        o.textContent = opt.label;
-        select.appendChild(o);
-    });
-
     // Trigger no-resi toggle untuk nilai awal
-    toggleNoResi(select.value);
     openModal('updateModal');
-}
-
-function toggleNoResi(status) {
-    const group = document.getElementById('noResiGroup');
-    const input = document.getElementById('noResiInput');
-    if (status === 'dikirim') {
-        group.classList.add('show');
-    } else {
-        group.classList.remove('show');
-        input.value = '';
-    }
 }
 
 // ══════════════════════════
@@ -1049,55 +1013,106 @@ function openDetail(orderId) {
         .then(data => {
             if (!data || data.error) {
                 document.getElementById('detailContent').innerHTML =
-                    `<p style="color:var(--error); text-align:center;"><i class="fas fa-exclamation-circle"></i> ${data?.error || 'Gagal memuat detail pesanan'}</p>`;
+                    `<p style="color:red;">${data?.error || 'Gagal memuat detail'}</p>`;
                 return;
             }
-            const totalFormatted = 'Rp ' + Number(data.total_harga).toLocaleString('id-ID');
-            const itemsHtml = (data.items || []).map(item => `
+
+            const fmt = n => 'Rp ' + Number(n).toLocaleString('id-ID');
+
+            const itemsHtml = data.items.map(item => `
                 <div class="item-list-row">
                     <span class="item-judul">${item.judul}</span>
-                    <span class="item-qty">× ${item.qty}</span>
-                    <span class="item-harga">Rp ${Number(item.harga_saat_beli).toLocaleString('id-ID')}</span>
+                    <span class="item-qty">${item.qty}x</span>
+                    <span class="item-harga">${fmt(item.harga_saat_beli)}</span>
                 </div>
             `).join('');
 
+            // Alamat: tampilkan jika ada
+            const alamatHtml = data.alamat_pengiriman
+                ? `<div class="detail-row">
+                       <span class="detail-label">Alamat</span>
+                       <span class="detail-value" style="max-width:280px; text-align:right; line-height:1.4;">
+                           ${data.alamat_pengiriman}
+                       </span>
+                   </div>`
+                : '';
+
             document.getElementById('detailContent').innerHTML = `
+                <!-- Info Customer -->
                 <div class="detail-section">
-                    <div class="detail-section-title">Informasi Pesanan</div>
-                    <div class="detail-row"><span class="detail-label">ID Pesanan</span><span class="detail-value">#${data.id_pesanan}</span></div>
-                    <div class="detail-row"><span class="detail-label">Tanggal</span><span class="detail-value">${data.tanggal_pesan}</span></div>
-                    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${data.status_pesanan}</span></div>
-                    ${data.no_resi ? `<div class="detail-row"><span class="detail-label">No. Resi</span><span class="detail-value">${data.no_resi}</span></div>` : ''}
+                    <div class="detail-section-title">
+                        <i class="fas fa-user" style="margin-right:.4rem;"></i>Info Customer
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Nama</span>
+                        <span class="detail-value">${data.nama_depan} ${data.nama_belakang}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Email</span>
+                        <span class="detail-value">${data.email}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Telepon</span>
+                        <span class="detail-value">${data.telepon || '-'}</span>
+                    </div>
                 </div>
+
+                <!-- Info Pesanan -->
                 <div class="detail-section">
-                    <div class="detail-section-title">Data Customer</div>
-                    <div class="detail-row"><span class="detail-label">Nama</span><span class="detail-value">${data.nama_depan} ${data.nama_belakang}</span></div>
-                    <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${data.email}</span></div>
-                    <div class="detail-row"><span class="detail-label">Telepon</span><span class="detail-value">${data.telepon || '-'}</span></div>
+                    <div class="detail-section-title">
+                        <i class="fas fa-receipt" style="margin-right:.4rem;"></i>Info Pesanan
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">ID Pesanan</span>
+                        <span class="detail-value" style="color:var(--gray-500);">#${data.id_pesanan}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value">${makeBadgeHtml(data.status_pesanan)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Tanggal</span>
+                        <span class="detail-value">${new Date(data.tanggal_pesan).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Total</span>
+                        <span class="detail-value" style="color:var(--indigo-light); font-size:1rem;">${fmt(data.total_harga)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Metode Bayar</span>
+                        <span class="detail-value">${data.metode_pembayaran || '-'}</span>
+                    </div>
                 </div>
+
+                <!-- Info Pengiriman -->
                 <div class="detail-section">
-                    <div class="detail-section-title">Pengiriman & Pembayaran</div>
-                    <div class="detail-row"><span class="detail-label">Kurir</span><span class="detail-value">${data.kurir || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Metode Bayar</span><span class="detail-value">${data.metode_pembayaran || '-'}</span></div>
-                    <div class="detail-row"><span class="detail-label">Alamat</span><span class="detail-value" style="max-width:260px; text-align:right;">${data.alamat_pengiriman || '-'}</span></div>
+                    <div class="detail-section-title">
+                        <i class="fas fa-truck" style="margin-right:.4rem;"></i>Info Pengiriman
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Kurir</span>
+                        <span class="detail-value">${data.kurir || '-'}</span>
+                    </div>
+                    ${alamatHtml}
                 </div>
+
+                <!-- Item Pesanan -->
                 <div class="detail-section">
-                    <div class="detail-section-title">Item Pesanan</div>
-                    <div class="item-list">${itemsHtml || '<div class="item-list-row" style="color:var(--gray-500);">Tidak ada item</div>'}</div>
-                </div>
-                <div class="detail-row" style="border-top:2px solid var(--gray-200); padding-top:.75rem; margin-top:.25rem;">
-                    <span style="font-weight:700; font-size:1rem;">Total Pembayaran</span>
-                    <span style="font-weight:700; font-size:1.1rem; color:var(--indigo-light);">${totalFormatted}</span>
+                    <div class="detail-section-title">
+                        <i class="fas fa-book" style="margin-right:.4rem;"></i>Item Pesanan
+                    </div>
+                    <div class="item-list">${itemsHtml}</div>
                 </div>
             `;
         })
-        .catch(() => {
+        .catch(err => {
+            console.error(err);
             document.getElementById('detailContent').innerHTML =
-                '<p style="color:var(--error); text-align:center;"><i class="fas fa-wifi" style="margin-right:.4rem;"></i>Gagal terhubung ke server. Coba lagi.</p>';
+                `<p style="color:red; padding:1rem;">Gagal mengambil data. Coba lagi.</p>`;
         });
 }
 
-// ══════════════════════════
+// ════════════════════════
 // Toast Notification
 // ══════════════════════════
 function showToast(message, type = 'success') {

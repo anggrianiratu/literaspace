@@ -48,8 +48,8 @@ $total_users = (int) $stmt->fetchColumn();
 $stmt = $pdo->query("SELECT SUM(stok) as total_stock FROM buku");
 $total_stock = (int) ($stmt->fetch()['total_stock'] ?? 0);
 
-// 5. Pending Orders (diproses, dikemas, dikirim)
-$stmt = $pdo->query("SELECT COUNT(*) FROM pesanan WHERE status_pesanan IN ('diproses', 'dikemas', 'dikirim')");
+// 5. Pending Orders ( ikemas, dikirim)
+$stmt = $pdo->query("SELECT COUNT(*) FROM pesanan WHERE status_pesanan IN ('dikemas', 'dikirim')");
 $pending_orders = (int) $stmt->fetchColumn();
 
 // 6. Low Stock Books (stok <= 5)
@@ -661,11 +661,11 @@ function formatTanggal($date) {
             letter-spacing: 0.5px;
         }
 
-        .badge-diproses { background: rgba(9, 132, 227, 0.1); color: var(--info); }
         .badge-dikemas { background: rgba(255, 165, 2, 0.1); color: var(--warning); }
         .badge-dikirim { background: rgba(255, 165, 2, 0.15); color: var(--warning); }
         .badge-selesai { background: rgba(46, 213, 115, 0.1); color: var(--success); }
-
+        .badge-dibatalkan { background: rgba(255, 71, 87, 0.1); color: var(--error); }
+        
         /* ── TOP BOOKS ── */
         .book-item {
             display: flex;
@@ -984,10 +984,10 @@ function formatTanggal($date) {
                     <div style="display: flex; flex-direction: column; gap: 1.25rem;">
                         <?php
                         $statuses = [
-                            'diproses' => 'Diproses',
                             'dikemas' => 'Dikemas',
                             'dikirim' => 'Dikirim',
-                            'selesai' => 'Selesai'
+                            'selesai' => 'Selesai',
+                            'dibatalkan' => 'Dibatalkan'
                         ];
                         foreach ($statuses as $key => $label) {
                             $stmt = $pdo->prepare("SELECT COUNT(*) FROM pesanan WHERE status_pesanan = ?");
@@ -1030,17 +1030,17 @@ function formatTanggal($date) {
                             <tbody>
                                 <?php foreach ($recent_orders as $order) {
                                     $status_badges = [
-                                        'diproses' => 'badge-diproses',
                                         'dikemas' => 'badge-dikemas',
                                         'dikirim' => 'badge-dikirim',
-                                        'selesai' => 'badge-selesai'
+                                        'selesai' => 'badge-selesai',
+                                        'dibatalkan' => 'badge-dibatalkan',
                                     ];
-                                    $badge_class = $status_badges[$order['status_pesanan']] ?? 'badge-diproses';
+                                    $badge_class = $status_badges[$order['status_pesanan']] ?? 'badge-dikemas';
                                     $status_icons = [
-                                        'diproses' => 'fas fa-hourglass-start',
                                         'dikemas' => 'fas fa-cube',
                                         'dikirim' => 'fas fa-truck',
-                                        'selesai' => 'fas fa-check-circle'
+                                        'selesai' => 'fas fa-check-circle',
+                                        'dibatalkan' => 'fas fa-times-circle'
                                     ];
                                     $icon = $status_icons[$order['status_pesanan']] ?? 'fas fa-info-circle';
                                 ?>

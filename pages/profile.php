@@ -99,7 +99,7 @@ $inisial      = strtoupper(substr($user['nama_depan'], 0, 1));
                 linear-gradient(170deg, #f0e6e1 0%, #ede4ec 30%, #e8ecf2 60%, #eee5e0 100%);
         }
 
-        .navbar, main, #toast {
+        .navbar, main, .page-header, #toast {
             position: relative; z-index: 1;
         }
 
@@ -160,10 +160,37 @@ $inisial      = strtoupper(substr($user['nama_depan'], 0, 1));
         .dropdown-menu a:last-child:hover { background: #fdf2f2; color: var(--error); }
         .dropdown-menu hr { border-color: rgba(232,197,208,.5); margin: .25rem 0; }
 
+        /* ══ PAGE HEADER ══ */
+        .page-header {
+            position: relative; overflow: hidden;
+            padding: 2.8rem 1.5rem 3rem;
+            background: transparent;
+        }
+        .page-header-inner {
+            max-width: 1100px; margin: 0 auto;
+            position: relative; z-index: 2;
+        }
+        .page-eyebrow {
+            font-size: .7rem; font-weight: 500; letter-spacing: .22em;
+            text-transform: uppercase; color: #9b6bb5;
+            margin-bottom: .55rem; display: block;
+        }
+        .page-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+            font-weight: 600; color: var(--ink); line-height: 1.15;
+            margin-bottom: .4rem;
+        }
+        .page-title em { font-style: italic; color: var(--plum); }
+        .page-subtitle {
+            font-size: .88rem; color: var(--muted);
+            font-family: 'Jost', sans-serif;
+        }
+
         /* ══ LAYOUT ══ */
         .page-inner {
             max-width: 1100px; margin: 0 auto;
-            padding: 2rem 1.5rem 3rem;
+            padding: 0 1.5rem 3rem;
         }
 
         .profile-grid {
@@ -436,6 +463,15 @@ $inisial      = strtoupper(substr($user['nama_depan'], 0, 1));
         </div>
     </div>
 </nav>
+
+<!-- ══ PAGE HEADER ══ -->
+<div class="page-header">
+    <div class="page-header-inner">
+        <span class="page-eyebrow">✦ Akun Saya</span>
+        <h1 class="page-title">Profil <em>Saya</em></h1>
+        <p class="page-subtitle">Bergabung sejak <?= formatTgl(substr($user['created_at'], 0, 10)) ?></p>
+    </div>
+</div>
 
 <!-- ══ MAIN ══ -->
 <main class="page-inner">

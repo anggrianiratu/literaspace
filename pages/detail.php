@@ -438,11 +438,11 @@ function starHtml($rating, $size = '0.78rem') {
             font-size: .95rem;
         }
         .btn-wishlist:hover { color: var(--error); background: rgba(192,64,58,.06); border-color: rgba(192,64,58,.3); }
-        .btn-wishlist.active { color: var(--error); border-color: rgba(192,64,58,.3); }
+        .btn-wishlist.active { color: var(--error); border-color: #7a6585; }
 
         /* ── Info Column ── */
         .info-column {
-            padding: 2rem 2.25rem;
+            padding: 2rem 2.25rem; 
             display: flex;
             flex-direction: column;
             gap: 1.1rem;

@@ -36,17 +36,10 @@ $admin_initial = strtoupper(substr($admin_data['nama_depan'], 0, 1));
 $period = in_array($_GET['period'] ?? '', ['7hari', '30hari', '90hari', 'semua']) ? $_GET['period'] : '30hari';
 
 switch ($period) {
-    case '7hari':
-        $days = 7;
-        break;
-    case '30hari':
-        $days = 30;
-        break;
-    case '90hari':
-        $days = 90;
-        break;
-    default:
-        $days = 365 * 10;
+    case '7hari':  $days = 7; break;
+    case '30hari': $days = 30; break;
+    case '90hari': $days = 90; break;
+    default:       $days = 365 * 10;
 }
 
 // Stats calculations
@@ -120,6 +113,13 @@ function formatTanggal($date) {
     [$y, $m, $d] = explode('-', substr($date, 0, 10));
     return (int)$d . ' ' . $bulan[(int)$m] . ' ' . $y;
 }
+
+$period_label = [
+    '7hari'  => '7 Hari Terakhir',
+    '30hari' => '30 Hari Terakhir',
+    '90hari' => '90 Hari Terakhir',
+    'semua'  => 'Semua Waktu',
+][$period];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -135,25 +135,25 @@ function formatTanggal($date) {
 
     <style>
         :root {
-            --indigo-deep:  #1e1667;
-            --indigo-mid:   #2d2a8f;
-            --indigo-light: #3b2ec0;
+            --indigo-deep:   #1e1667;
+            --indigo-mid:    #2d2a8f;
+            --indigo-light:  #3b2ec0;
             --indigo-accent: #7c5cfa;
-            --white:        #ffffff;
-            --gray-50:      #f8f8fb;
-            --gray-100:     #f0f0f7;
-            --gray-200:     #e2e2ef;
-            --gray-500:     #6b6b8a;
-            --gray-600:     #4a4a68;
-            --gray-700:     #3a3a52;
-            --gray-800:     #1a1a2e;
-            --error:        #ff4757;
-            --success:      #2ed573;
-            --warning:      #ffa502;
-            --info:         #0984e3;
-            --radius:       16px;
-            --shadow:       0 8px 32px rgba(30,22,103,.12);
-            --shadow-lg:    0 16px 48px rgba(30,22,103,.16);
+            --white:         #ffffff;
+            --gray-50:       #f8f8fb;
+            --gray-100:      #f0f0f7;
+            --gray-200:      #e2e2ef;
+            --gray-500:      #6b6b8a;
+            --gray-600:      #4a4a68;
+            --gray-700:      #3a3a52;
+            --gray-800:      #1a1a2e;
+            --error:         #ff4757;
+            --success:       #2ed573;
+            --warning:       #ffa502;
+            --info:          #0984e3;
+            --radius:        16px;
+            --shadow:        0 8px 32px rgba(30,22,103,.12);
+            --shadow-lg:     0 16px 48px rgba(30,22,103,.16);
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -214,7 +214,6 @@ function formatTanggal($date) {
             color: var(--white); font-weight: 700; font-size: .95rem; cursor: pointer;
             box-shadow: 0 2px 8px rgba(59, 46, 192, 0.2); transition: transform .2s;
         }
-
         .admin-avatar:hover { transform: scale(1.05); }
 
         .dropdown-wrap { position: relative; }
@@ -224,43 +223,50 @@ function formatTanggal($date) {
             box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200);
             opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; z-index: 100; overflow: hidden;
         }
-
         .dropdown-wrap:hover .dropdown-menu { opacity: 1; visibility: visible; }
-
-        .dropdown-header {
-            padding: 1rem; border-bottom: 1px solid var(--gray-200); background: var(--gray-50);
-        }
-
+        .dropdown-header { padding: 1rem; border-bottom: 1px solid var(--gray-200); background: var(--gray-50); }
         .dropdown-header-text { font-size: .85rem; color: var(--gray-500); }
         .dropdown-header-name { font-weight: 700; color: var(--gray-800); font-size: .95rem; }
-
         .dropdown-menu a {
             display: flex; align-items: center; gap: .75rem;
             padding: .75rem 1rem; font-size: .9rem;
             color: var(--gray-800); text-decoration: none; transition: background .15s;
         }
-
         .dropdown-menu a:hover { background: var(--gray-50); color: var(--indigo-light); }
         .dropdown-menu a.logout { color: var(--error); border-top: 1px solid var(--gray-200); }
 
         /* ── PAGE ── */
         .page-content { flex: 1; padding: 2rem; overflow-y: auto; }
-        .page-header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+        .page-header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
         .page-title { font-size: 1.75rem; font-weight: 700; color: var(--gray-800); }
         .page-subtitle { font-size: .95rem; color: var(--gray-500); margin-top: .25rem; }
 
-        /* ── PERIOD SELECTOR ── */
+        /* ── PERIOD & PRINT BUTTONS ── */
+        .header-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
         .period-selector { display: flex; gap: 0.5rem; }
         .period-btn {
             padding: 0.6rem 1.2rem; border: 2px solid var(--gray-200);
             border-radius: 8px; background: var(--white);
             color: var(--gray-600); font-size: 0.9rem; font-weight: 600;
-            cursor: pointer; transition: all .2s;
-            text-decoration: none;
+            cursor: pointer; transition: all .2s; text-decoration: none;
         }
         .period-btn:hover, .period-btn.active {
             border-color: var(--indigo-light); color: var(--indigo-light);
             background: rgba(59, 46, 192, 0.05);
+        }
+
+        .btn-print {
+            display: inline-flex; align-items: center; gap: .5rem;
+            padding: 0.6rem 1.4rem;
+            background: linear-gradient(135deg, var(--indigo-light), var(--indigo-accent));
+            color: var(--white); border: none; border-radius: 8px;
+            font-size: 0.9rem; font-weight: 600; cursor: pointer;
+            transition: all .2s; text-decoration: none;
+            box-shadow: 0 4px 12px rgba(59, 46, 192, 0.3);
+        }
+        .btn-print:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 46, 192, 0.4);
         }
 
         /* ── STATS ── */
@@ -268,27 +274,18 @@ function formatTanggal($date) {
             display: grid; grid-template-columns: repeat(4, 1fr);
             gap: 1.25rem; margin-bottom: 2rem;
         }
-
         .stat-card {
             background: var(--white); border-radius: var(--radius); padding: 1.5rem;
             box-shadow: var(--shadow); border: 1px solid var(--gray-200);
             display: flex; flex-direction: column; gap: 0.75rem;
             transition: transform .2s, box-shadow .2s;
         }
-
         .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-
-        .stat-icon {
-            width: 48px; height: 48px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.3rem; flex-shrink: 0;
-        }
-
+        .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
         .stat-icon.indigo  { background: rgba(59,46,192,.12); color: var(--indigo-light); }
         .stat-icon.success { background: rgba(46,213,115,.12); color: var(--success); }
         .stat-icon.warning { background: rgba(255,165,2,.12); color: var(--warning); }
         .stat-icon.info    { background: rgba(9,132,227,.12); color: var(--info); }
-
         .stat-label { font-size: .78rem; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: .5px; }
         .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--gray-800); }
         .stat-sub   { font-size: .85rem; color: var(--gray-500); }
@@ -298,8 +295,8 @@ function formatTanggal($date) {
             background: var(--white); border-radius: var(--radius); padding: 1.5rem;
             box-shadow: var(--shadow); border: 1px solid var(--gray-200); margin-bottom: 1.5rem;
         }
-
-        .card-title { font-size: 1.1rem; font-weight: 700; color: var(--gray-800); margin-bottom: 1.5rem; }
+        .card-title { font-size: 1.1rem; font-weight: 700; color: var(--gray-800); margin-bottom: 1.5rem; display: flex; align-items: center; gap: .5rem; }
+        .card-title i { color: var(--indigo-light); }
 
         /* ── CHARTS ── */
         .chart-container { position: relative; height: 300px; margin-bottom: 1rem; }
@@ -307,42 +304,102 @@ function formatTanggal($date) {
         /* ── TABLES ── */
         .table-wrap { overflow-x: auto; }
         .table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-
         .table th {
             background: linear-gradient(90deg, var(--gray-50), var(--gray-100));
             padding: 1rem; text-align: left; font-weight: 700; color: var(--gray-600);
             border-bottom: 2px solid var(--gray-200); text-transform: uppercase;
             font-size: .78rem; letter-spacing: .5px;
         }
-
         .table td { padding: 1rem; border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
         .table tbody tr { transition: background .2s; }
         .table tbody tr:hover { background: rgba(59,46,192,.04); }
 
-        .badge {
-            display: inline-block; padding: 0.4rem 0.75rem; border-radius: 6px;
-            font-size: 0.8rem; font-weight: 600;
-        }
-
+        .badge { display: inline-block; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
         .badge-success { background: rgba(46,213,115,.1); color: var(--success); }
         .badge-warning { background: rgba(255,165,2,.1); color: var(--warning); }
 
         /* ── GRID ── */
-        .cards-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;
+        .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+
+        /* ══════════════════════════════════════
+           PRINT STYLES
+        ══════════════════════════════════════ */
+        @media print {
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+            body { background: white !important; display: block !important; }
+
+            .sidebar,
+            .navbar,
+            .header-actions,
+            .btn-print { display: none !important; }
+
+            .main-content { margin-left: 0 !important; display: block !important; }
+
+            .page-content { padding: 0 !important; }
+
+            /* Print header */
+            .print-header { display: flex !important; }
+
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                break-inside: avoid;
+                margin-bottom: 1rem !important;
+            }
+
+            .stat-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+            }
+
+            .stats-grid { grid-template-columns: repeat(4, 1fr) !important; gap: .75rem !important; margin-bottom: 1rem !important; }
+            .cards-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 1rem !important; }
+
+            .chart-container { height: 220px !important; }
+
+            .page-header { margin-bottom: 1rem !important; }
+
+            @page {
+                margin: 1.5cm 1.5cm 2cm 1.5cm;
+                size: A4 landscape;
+            }
         }
+
+        /* Print header — hidden on screen, shown on print */
+        .print-header {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 3px solid var(--indigo-light);
+        }
+
+        .print-header-left { display: flex; align-items: center; gap: .75rem; }
+        .print-logo-box {
+            width: 44px; height: 44px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--indigo-light), var(--indigo-accent));
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.25rem;
+        }
+        .print-brand { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--indigo-deep); }
+        .print-brand-sub { font-size: .7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px; }
+        .print-meta { text-align: right; }
+        .print-report-title { font-size: 1.1rem; font-weight: 700; color: var(--gray-800); }
+        .print-report-sub { font-size: .85rem; color: var(--gray-500); margin-top: .2rem; }
 
         /* ── RESPONSIVE ── */
         @media (max-width: 1200px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .cards-grid { grid-template-columns: 1fr; }
         }
-
         @media (max-width: 768px) {
             .sidebar { left: -260px; }
             .main-content { margin-left: 0; }
             .stats-grid { grid-template-columns: 1fr; }
             .page-header { flex-direction: column; }
+            .header-actions { width: 100%; }
             .period-selector { flex-wrap: wrap; }
             .page-content { padding: 1rem; }
         }
@@ -394,17 +451,37 @@ function formatTanggal($date) {
 
     <div class="page-content">
 
+        <!-- PRINT HEADER (only visible when printing) -->
+        <div class="print-header">
+            <div class="print-header-left">
+                <div class="print-logo-box"><i class="fas fa-book"></i></div>
+                <div>
+                    <div class="print-brand">LiteraSpace</div>
+                    <div class="print-brand-sub">Admin Panel</div>
+                </div>
+            </div>
+            <div class="print-meta">
+                <div class="print-report-title">Laporan Penjualan — <?= htmlspecialchars($period_label) ?></div>
+                <div class="print-report-sub">Dicetak pada: <?= date('d M Y, H:i') ?> WIB</div>
+            </div>
+        </div>
+
         <!-- HEADER -->
         <div class="page-header">
             <div>
                 <h1 class="page-title">Laporan Penjualan</h1>
                 <p class="page-subtitle">Analisis performa penjualan dan statistik bisnis</p>
             </div>
-            <div class="period-selector">
-                <a href="?period=7hari" class="period-btn <?= $period === '7hari' ? 'active' : '' ?>">7 Hari</a>
-                <a href="?period=30hari" class="period-btn <?= $period === '30hari' ? 'active' : '' ?>">30 Hari</a>
-                <a href="?period=90hari" class="period-btn <?= $period === '90hari' ? 'active' : '' ?>">90 Hari</a>
-                <a href="?period=semua" class="period-btn <?= $period === 'semua' ? 'active' : '' ?>">Semua</a>
+            <div class="header-actions">
+                <div class="period-selector">
+                    <a href="?period=7hari"  class="period-btn <?= $period === '7hari'  ? 'active' : '' ?>">7 Hari</a>
+                    <a href="?period=30hari" class="period-btn <?= $period === '30hari' ? 'active' : '' ?>">30 Hari</a>
+                    <a href="?period=90hari" class="period-btn <?= $period === '90hari' ? 'active' : '' ?>">90 Hari</a>
+                    <a href="?period=semua"  class="period-btn <?= $period === 'semua'  ? 'active' : '' ?>">Semua</a>
+                </div>
+                <button class="btn-print" onclick="cetakLaporan()">
+                    <i class="fas fa-file-pdf"></i> Cetak PDF
+                </button>
             </div>
         </div>
 
@@ -420,7 +497,6 @@ function formatTanggal($date) {
                     </div>
                 </div>
             </div>
-
             <div class="stat-card">
                 <div style="display:flex; align-items:center; gap:1rem;">
                     <div class="stat-icon success"><i class="fas fa-money-bill-wave"></i></div>
@@ -430,7 +506,6 @@ function formatTanggal($date) {
                     </div>
                 </div>
             </div>
-
             <div class="stat-card">
                 <div style="display:flex; align-items:center; gap:1rem;">
                     <div class="stat-icon warning"><i class="fas fa-chart-line"></i></div>
@@ -440,7 +515,6 @@ function formatTanggal($date) {
                     </div>
                 </div>
             </div>
-
             <div class="stat-card">
                 <div style="display:flex; align-items:center; gap:1rem;">
                     <div class="stat-icon info"><i class="fas fa-database"></i></div>
@@ -455,59 +529,48 @@ function formatTanggal($date) {
 
         <!-- CHARTS ROW -->
         <div class="cards-grid">
-
-            <!-- REVENUE CHART -->
             <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-chart-line"></i> Revenue Bulanan
-                </div>
+                <div class="card-title"><i class="fas fa-chart-line"></i> Revenue Bulanan</div>
                 <div class="chart-container">
                     <canvas id="revenueChart"></canvas>
                 </div>
             </div>
-
-            <!-- STATUS BREAKDOWN -->
             <div class="card">
-                <div class="card-title">
-                    <i class="fas fa-pie-chart"></i> Status Pesanan
-                </div>
+                <div class="card-title"><i class="fas fa-chart-pie"></i> Status Pesanan</div>
                 <div class="chart-container">
                     <canvas id="statusChart"></canvas>
                 </div>
             </div>
-
         </div>
 
         <!-- TOP PRODUCTS -->
         <div class="card">
-            <div class="card-title">
-                <i class="fas fa-crown"></i> Top 5 Produk Terlaris
-            </div>
+            <div class="card-title"><i class="fas fa-crown"></i> Top 5 Produk Terlaris</div>
             <div class="table-wrap">
                 <table class="table">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>Produk</th>
                             <th style="width:100px;">Terjual</th>
-                            <th style="width:150px;">Revenue</th>
-                            <th style="width:150px;">Harga</th>
+                            <th style="width:170px;">Revenue</th>
+                            <th style="width:150px;">Harga Satuan</th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php if (!empty($top_books)): ?>
-                        <?php foreach ($top_books as $book): ?>
+                        <?php foreach ($top_books as $i => $book): ?>
                             <tr>
+                                <td style="font-weight:700; color:var(--indigo-light);"><?= $i + 1 ?></td>
                                 <td style="font-weight:600;"><?= htmlspecialchars($book['judul']) ?></td>
-                                <td>
-                                    <span class="badge badge-success"><?= $book['total_terjual'] ?? 0 ?> unit</span>
-                                </td>
+                                <td><span class="badge badge-success"><?= $book['total_terjual'] ?? 0 ?> unit</span></td>
                                 <td><?= formatRupiah($book['total_revenue'] ?? 0) ?></td>
                                 <td><?= formatRupiah($book['harga'] ?? 0) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="4" style="text-align:center; color:var(--gray-500);">Tidak ada data</td>
+                            <td colspan="5" style="text-align:center; color:var(--gray-500); padding:2rem;">Tidak ada data</td>
                         </tr>
                     <?php endif; ?>
                     </tbody>
@@ -515,17 +578,20 @@ function formatTanggal($date) {
             </div>
         </div>
 
-    </div>
-</div>
+    </div><!-- /page-content -->
+</div><!-- /main-content -->
 
 <script>
-    // Revenue Chart
-    const monthlyData = <?= json_encode($monthly_data) ?>;
-    const monthLabels = monthlyData.map(d => d.bulan);
-    const monthRevenue = monthlyData.map(d => parseInt(d.revenue));
+    // ── Revenue Chart ──
+    const monthlyData  = <?= json_encode($monthly_data) ?>;
+    const monthLabels  = monthlyData.map(d => {
+        const [y, m] = d.bulan.split('-');
+        const names  = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+        return names[parseInt(m)] + ' ' + y.slice(-2);
+    });
+    const monthRevenue = monthlyData.map(d => parseInt(d.revenue) || 0);
 
-    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-    new Chart(revenueCtx, {
+    new Chart(document.getElementById('revenueChart').getContext('2d'), {
         type: 'line',
         data: {
             labels: monthLabels,
@@ -533,7 +599,7 @@ function formatTanggal($date) {
                 label: 'Revenue',
                 data: monthRevenue,
                 borderColor: '#3b2ec0',
-                backgroundColor: 'rgba(59, 46, 192, 0.1)',
+                backgroundColor: 'rgba(59,46,192,0.1)',
                 borderWidth: 3,
                 fill: true,
                 tension: 0.4,
@@ -550,25 +616,25 @@ function formatTanggal($date) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { callback: v => 'Rp' + (v/1000000).toFixed(0) + 'M' }
+                    ticks: { callback: v => 'Rp' + (v/1000000).toFixed(1) + 'M' }
                 }
             }
         }
     });
 
-    // Status Chart
+    // ── Status Doughnut Chart ──
     const statusBreakdown = <?= json_encode($status_breakdown) ?>;
-    const statusLabels = Object.keys(statusBreakdown).map(s => ({
-        'diproses': 'Diproses',
-        'dikemas': 'Dikemas',
-        'dikirim': 'Dikirim',
-        'selesai': 'Selesai'
-    }[s]));
+    const statusMap = {
+        'dikemas':    'Dikemas',
+        'dikirim':    'Dikirim',
+        'selesai':    'Selesai',
+        'dibatalkan': 'Dibatalkan'
+    };
+    const statusLabels = Object.keys(statusBreakdown).map(s => statusMap[s] ?? s);
     const statusCounts = Object.values(statusBreakdown).map(d => d.total);
-    const statusColors = ['#ff8c00', '#0984e3', '#7c5cfa', '#2ed573'];
+    const statusColors = ['#ffa502', '#0984e3', '#2ed573', '#ff4757'];
 
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
-    new Chart(statusCtx, {
+    new Chart(document.getElementById('statusChart').getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: statusLabels,
@@ -587,6 +653,11 @@ function formatTanggal($date) {
             }
         }
     });
+
+    // ── Cetak / Print to PDF ──
+    function cetakLaporan() {
+        window.print();
+    }
 </script>
 
 </body>

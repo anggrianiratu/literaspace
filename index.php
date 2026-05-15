@@ -953,14 +953,10 @@ function truncateText($text, $limit = 50) { return mb_strlen($text) > $limit ? m
     <div class="ticker-track">
         <?php
         $tickers = [
-            'Diskon 30% Buku Baru',
-            'Gratis Ongkir Min. Rp75.000',
             'Buku Terlaris Bulan Ini',
-            'Flash Sale Setiap Jumat',
             'Garansi Kepuasan 30 Hari',
             'Koleksi Baru Setiap Minggu',
-            'Cicilan 0% s/d 12 Bulan',
-            'Voucher Diskon Member Baru',
+            'Pilihan Buku untuk Semua Genre',
             'Pengiriman ke Seluruh Indonesia',
             'Buku Original Bergaransi',
         ];

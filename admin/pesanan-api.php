@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$pdo = getDB();
+$pdo      = getDB();
 $admin_id = (int) $_SESSION['user_id'];
 
 // Verify admin
@@ -29,48 +29,71 @@ if (!$user || $user['role'] !== 'admin') {
 $action = $_GET['action'] ?? '';
 
 if ($action === 'detail') {
-    $order_id = (int) $_GET['id'];
+    $order_id = (int) ($_GET['id'] ?? 0);
 
-    $stmt = $pdo->prepare("
-        SELECT p.id_pesanan, p.total_harga, p.status_pesanan, p.tanggal_pesan,
-               u.nama_depan, u.nama_belakang, u.email
-        FROM pesanan p
-        JOIN users u ON p.id_user = u.id
-        WHERE p.id_pesanan = ?
-    ");
-    $stmt->execute([$order_id]);
-    $order = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$order) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Order not found']);
+    if ($order_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'ID tidak valid']);
         exit;
     }
 
-    $stmt = $pdo->prepare("
-        SELECT dp.qty, dp.harga_saat_beli, b.judul
-        FROM detail_pesanan dp
-        JOIN buku b ON dp.id_buku = b.id_buku
-        WHERE dp.id_pesanan = ?
-    ");
-    $stmt->execute([$order_id]);
-    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        // ← Tambah kolom: telepon, metode_pembayaran, kurir, no_resi, alamat_pengiriman
+        $stmt = $pdo->prepare("
+            SELECT p.id_pesanan, p.total_harga, p.status_pesanan, p.tanggal_pesan,
+                   p.metode_pembayaran, p.kurir, p.alamat_pengiriman,
+                   u.nama_depan, u.nama_belakang, u.email, u.telepon
+            FROM pesanan p
+            JOIN users u ON p.id_user = u.id
+            WHERE p.id_pesanan = ?
+        ");
+        $stmt->execute([$order_id]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    echo json_encode([
-        'id_pesanan' => $order['id_pesanan'],
-        'nama_depan' => $order['nama_depan'],
-        'nama_belakang' => $order['nama_belakang'],
-        'email' => $order['email'],
-        'total_harga' => (int) $order['total_harga'],
-        'status_pesanan' => $order['status_pesanan'],
-        'tanggal_pesan' => $order['tanggal_pesan'],
-        'items' => array_map(function($item) {
-            return [
-                'judul' => $item['judul'],
-                'qty' => (int) $item['qty'],
-                'harga_saat_beli' => (int) $item['harga_saat_beli']
-            ];
-        }, $items)
-    ]);
+        if (!$order) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Pesanan tidak ditemukan']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT dp.qty, dp.harga_saat_beli, b.judul
+            FROM detail_pesanan dp
+            JOIN buku b ON dp.id_buku = b.id_buku
+            WHERE dp.id_pesanan = ?
+        ");
+        $stmt->execute([$order_id]);
+        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'id_pesanan'        => $order['id_pesanan'],
+            'nama_depan'        => $order['nama_depan'],
+            'nama_belakang'     => $order['nama_belakang'],
+            'email'             => $order['email'],
+            'telepon'           => $order['telepon'] ?? '-',
+            'total_harga'       => (int) $order['total_harga'],
+            'status_pesanan'    => $order['status_pesanan'],
+            'tanggal_pesan'     => $order['tanggal_pesan'],
+            'metode_pembayaran' => $order['metode_pembayaran'] ?? '-',
+            'kurir'             => $order['kurir'] ?? '-',
+            'alamat_pengiriman' => $order['alamat_pengiriman'] ?? null,
+            'items'             => array_map(function ($item) {
+                return [
+                    'judul'           => $item['judul'],
+                    'qty'             => (int) $item['qty'],
+                    'harga_saat_beli' => (int) $item['harga_saat_beli'],
+                ];
+            }, $items),
+        ]);
+
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+    }
+
+    exit;
 }
-?>
+
+// Action tidak dikenal
+http_response_code(400);
+echo json_encode(['error' => 'Action tidak dikenal']);

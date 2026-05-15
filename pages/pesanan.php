@@ -200,6 +200,7 @@ $status_config = [
         .page-inner { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
         .page-heading { margin-bottom: 1.6rem; }
         .page-heading h1 { font-family: 'Cormorant Garamond', serif; font-size: 1.9rem; font-weight: 600; color: var(--ink); letter-spacing: .01em; }
+        .page-heading h1 span { font-style: italic; color:  #4a2c5e; }
         .page-heading p  { font-size: .82rem; color: var(--muted); margin-top: .25rem; }
 
         /* ── Tabs ── */
@@ -494,7 +495,7 @@ $status_config = [
     <?php endif; ?>
 
     <div class="page-heading">
-        <h1>Pesanan Saya</h1>
+        <h1>Pesanan <span>Saya</span></h1>
         <p>Lihat dan kelola semua pesanan kamu</p>
     </div>
 
